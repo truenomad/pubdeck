@@ -188,6 +188,27 @@ written_slides <- function(deck, dir = withr::local_tempdir()) {
     )
 }
 
+# paragraphs of the saved deck where a run follows the end mark, which
+# PowerPoint repairs on opening
+saved_malformed_paragraphs <- function(deck) {
+  written_slides(deck) |>
+    purrr::map_int(\(xml) {
+      xml2::read_xml(xml) |>
+        xml2::xml_find_all("//a:p/a:endParaRPr[following-sibling::a:r]") |>
+        length()
+    }) |>
+    sum()
+}
+
+# a page holding a flextable cell with no text, as a caller might build it
+empty_cell_page <- function(config = test_config()) {
+  cell <- flextable::flextable(tibble::tibble(note = "")) |>
+    flextable::delete_part(part = "header")
+
+  blank_page(config) |>
+    officer::ph_with(value = cell, location = .box_location(test_box()))
+}
+
 # the record of typefaces already looked up, emptied for the length of a
 # test
 local_typeface_record <- function(env = parent.frame()) {

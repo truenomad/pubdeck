@@ -161,6 +161,8 @@ deck_note_block <- function(heading = NULL, notes, pt = NULL, bullet = FALSE,
       )
   }
 
+  block <- .space_empty_cells(block)
+
   row_pad <- if (bullet) 2 * entry_pad else 2 * pad_y
   indent <- dplyr::if_else(
     bullet & entries$level == 2L, config$note_indent, 0

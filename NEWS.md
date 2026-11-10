@@ -1,3 +1,15 @@
+# pubdeck 0.3.2
+
+* The page builders no longer write a table cell with no text as a
+  paragraph that PowerPoint repairs on opening. `deck_cover_box()`,
+  `deck_text_box()`, `deck_hrule()`, `deck_panel()`, `deck_callout()`,
+  `deck_rule_note()`, `deck_kpi()`, `deck_table()`, `deck_note_block()`
+  and the section bands of the contents page write a single space into
+  such a cell. A box keeps its size and look.
+* New `deck_fix_paragraphs()` corrects the same fault in tables a caller
+  builds and places itself. Call it once, before the deck is written for
+  the last time. No page builder or writer of this package calls it.
+
 # pubdeck 0.3.1
 
 * A new `compress_png` setting says whether a PNG is compressed. With it

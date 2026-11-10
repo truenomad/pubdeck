@@ -300,6 +300,7 @@ deck_text_box <- function(deck, geom, text = "", fill = NULL, colour = NULL,
     flextable::flextable() |>
     flextable::delete_part(part = "header") |>
     flextable::border_remove() |>
+    .space_empty_cells() |>
     flextable::bg(bg = fill %||% config$text_box_fill, part = "body") |>
     flextable::color(
       color = colour %||% config$text_box_colour, part = "body"

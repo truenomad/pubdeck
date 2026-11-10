@@ -10,7 +10,7 @@ test_that("deck_panel places a fill, a heading and marked lines", {
   expect_setequal(shapes$ph_label, c("panel_bg", "panel"))
   expect_equal(
     shape_text(deck, "panel"),
-    "What changed\u25aa Coverage rose\u2192 see page 4In detail:"
+    "What changed\u25aa Coverage rose\u2192 see page 4In detail: "
   )
   expect_match(shape_xml(deck, "panel_bg"), "F2F5F7", fixed = TRUE)
   expect_match(xml, "sz=\"1800\"", fixed = TRUE)

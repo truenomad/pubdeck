@@ -38,7 +38,8 @@
   tibble::tibble(text = text) |>
     flextable::flextable() |>
     flextable::delete_part(part = "header") |>
-    flextable::border_remove()
+    flextable::border_remove() |>
+    .space_empty_cells()
 }
 
 # the fixed width a block finishes with
@@ -574,7 +575,7 @@ deck_hrule <- function(deck, left, top, width, colour = NULL, weight = NULL,
     width = weight %||% config$hrule_weight
   )
 
-  rule <- tibble::tibble(x = "") |>
+  rule <- tibble::tibble(x = " ") |>
     flextable::flextable() |>
     flextable::delete_part(part = "header") |>
     flextable::border_remove() |>
@@ -771,6 +772,7 @@ deck_table <- function(deck, geom, data, widths, size = NULL, label = NULL,
   )
 
   table <- flextable::flextable(data) |>
+    .space_empty_cells(part = c("header", "body")) |>
     flextable::border_remove() |>
     flextable::hline(border = rule, part = "body") |>
     flextable::hline_bottom(border = head_rule, part = "header") |>

@@ -52,13 +52,45 @@
   officer::ph_location_label(ph_label = config$labels[[name]])
 }
 
+# empty cells ------------------------------------------------------------------
+
+# a space in each cell with no text, because flextable writes an empty cell
+# as a paragraph that PowerPoint repairs on opening
+#' @noRd
+.space_empty_cells <- function(ft, part = "body") {
+  empty <- flextable::information_data_chunk(ft) |>
+    dplyr::mutate(
+      .part = as.character(.data$.part), .col_id = as.character(.data$.col_id)
+    ) |>
+    dplyr::filter(.data$.part %in% part) |>
+    dplyr::summarise(
+      empty = all(is.na(.data$txt) | .data$txt == ""),
+      .by = c(".part", ".row_id", ".col_id")
+    ) |>
+    dplyr::filter(.data$empty)
+
+  purrr::reduce(
+    seq_len(nrow(empty)),
+    \(ft, k) {
+      cell <- dplyr::slice(empty, k)
+
+      flextable::compose(
+        ft, i = cell$.row_id, j = cell$.col_id, part = cell$.part,
+        value = flextable::as_paragraph(" ")
+      )
+    },
+    .init = ft
+  )
+}
+
 # bands ------------------------------------------------------------------------
 
 # a filled one-cell table, because a slide will not render a paragraph
-# border and officer draws no rectangle of its own
+# border and officer draws no rectangle of its own; the space keeps the
+# cell's paragraph valid
 #' @noRd
 .filled_band <- function(fill) {
-  tibble::tibble(band = "") |>
+  tibble::tibble(band = " ") |>
     flextable::flextable() |>
     flextable::delete_part(part = "header") |>
     flextable::border_remove() |>
