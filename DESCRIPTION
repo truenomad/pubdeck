@@ -1,0 +1,50 @@
+Package: pubdeck
+Title: House Figure Theme and PowerPoint Deck Builder for Routine Reports
+Version: 0.1.0
+Authors@R:
+    person("Mohamed A.", "Yusuf", , "mohamedayusuf87@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9339-4613"))
+Description: Provides a 'ggplot2' theme, colour palettes, figure and table
+    savers, and helpers that assemble a 'PowerPoint' deck from a template
+    with 'officer'. Slide geometry is read from the template, and the
+    styling and wording a deck uses are held in one configuration object,
+    so several reporting pipelines can share one look and one set of page
+    builders.
+License: MIT + file LICENSE
+URL: https://github.com/truenomad/pubdeck
+BugReports: https://github.com/truenomad/pubdeck/issues
+Depends:
+    R (>= 4.1.0)
+Imports:
+    cli,
+    dplyr (>= 1.1.1),
+    flextable,
+    fs,
+    ggplot2 (>= 3.5.0),
+    graphics,
+    grDevices,
+    gt,
+    magick,
+    officer,
+    purrr (>= 1.0.1),
+    qs2,
+    rlang,
+    rvg,
+    scales,
+    stats,
+    tibble,
+    utils
+Suggests:
+    patchwork,
+    poliprep,
+    sf,
+    testthat (>= 3.0.0),
+    withr
+Remotes:
+    WorldHealthOrganization/poliprep
+Config/testthat/edition: 3
+Encoding: UTF-8
+Language: en-GB
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
