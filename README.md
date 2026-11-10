@@ -1,4 +1,4 @@
-# pubdeck
+# pubdeck <img src="man/figures/logo.png" align="right" height="139" alt="pubdeck logo" />
 
 A house figure theme and a PowerPoint deck builder for routine reports.
 
