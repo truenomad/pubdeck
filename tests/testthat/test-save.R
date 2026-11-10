@@ -159,6 +159,119 @@ test_that("compress_pub leaves missing and non-PNG files alone", {
   expect_equal(readLines(text_file), "a")
 })
 
+test_that("compress_pub takes the compress setting three ways", {
+  skip_if_not_installed("poliprep")
+
+  compressed <- character(0)
+  local_mocked_bindings(
+    compress_png = \(path, ...) compressed <<- c(compressed, basename(path)),
+    .package = "poliprep"
+  )
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "chart.png")
+  magick::image_write(magick::image_blank(10, 10, color = "white"), path)
+  off <- deck_config(compress_png = FALSE)
+
+  expect_true(deck_config()$compress_png)
+  compress_pub(path)
+  expect_equal(compressed, "chart.png")
+
+  compress_pub(path, compress = FALSE)
+  compress_pub(path, config = off)
+  with_deck_config(off, compress_pub(path))
+  expect_equal(compressed, "chart.png")
+
+  compress_pub(path, compress = TRUE, config = off)
+  expect_equal(compressed, c("chart.png", "chart.png"))
+  expect_error(compress_pub(path, compress = "no"), "compress")
+  expect_error(
+    compress_pub(path, config = deck_config(compress_png = NA)), "compress"
+  )
+})
+
+test_that("ggsave_pub and trim_png pass the compress setting on", {
+  skip_if_not_installed("poliprep")
+
+  compressed <- 0
+  local_mocked_bindings(
+    compress_png = \(path, ...) compressed <<- compressed + 1,
+    .package = "poliprep"
+  )
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  path <- file.path(dir, "chart.png")
+  off <- deck_config(compress_png = FALSE)
+  save <- \(...) {
+    suppressMessages(
+      ggsave_pub(plot, path, width = 4, height = 2, grob = FALSE, ...)
+    )
+  }
+
+  save()
+  expect_equal(compressed, 1)
+
+  save(compress = FALSE)
+  save(config = off)
+  with_deck_config(off, save())
+  trim_png(path, compress = FALSE)
+  trim_png(path, config = off)
+  with_deck_config(off, trim_png(path))
+  expect_equal(compressed, 1)
+
+  save(compress = TRUE, config = off)
+  trim_png(path)
+  expect_equal(compressed, 3)
+})
+
+test_that("ggsave_pub without compression writes the device's own file", {
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  saved <- file.path(dir, "saved.png")
+  drawn <- file.path(dir, "drawn.png")
+
+  suppressMessages(ggsave_pub(
+    plot, saved, width = 4, height = 2, grob = FALSE, compress = FALSE,
+    png_device = "default"
+  ))
+  ggplot2::ggsave(drawn, plot, width = 4, height = 2, dpi = 300, bg = "white")
+
+  expect_identical(image_pixels(saved), image_pixels(drawn))
+})
+
+test_that("gtsave_pub passes the compress setting on", {
+  skip_if_not_installed("poliprep")
+  skip_if_not_installed("webshot2")
+
+  compressed <- 0
+  local_mocked_bindings(
+    compress_png = \(path, ...) compressed <<- compressed + 1,
+    .package = "poliprep"
+  )
+  local_mocked_bindings(
+    gtsave = \(data, filename, ...) {
+      magick::image_write(magick::image_blank(20, 10), filename)
+    },
+    .package = "gt"
+  )
+
+  dir <- withr::local_tempdir()
+  path <- file.path(dir, "table.png")
+  build <- \(pad) gt::gt(data.frame(x = 1))
+  save <- \(...) {
+    suppressMessages(gtsave_pub(build, path, width = 2, height = 1, ...))
+  }
+
+  save()
+  save(compress = FALSE)
+  save(config = deck_config(compress_png = FALSE))
+  with_deck_config(deck_config(compress_png = FALSE), save())
+
+  expect_equal(compressed, 1)
+  expect_equal(save(compress = FALSE)$aspect, 2)
+})
+
 test_that("trim_png cuts the margin down to the border", {
   dir <- withr::local_tempdir()
   path <- file.path(dir, "dot.png")

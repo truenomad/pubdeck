@@ -1,3 +1,22 @@
+# pubdeck 0.3.1
+
+* A new `compress_png` setting says whether a PNG is compressed. With it
+  `FALSE`, `compress_pub()` does nothing. `compress_pub()`, `ggsave_pub()`,
+  `gtsave_pub()` and `trim_png()` gain `compress`, which defaults to the
+  setting, and `compress_pub()` and `trim_png()` gain `config`.
+* `deck_place_in_box()` accepts `valign = "bottom"`, which rests an image
+  on the foot of its box. No other placement helper takes a vertical
+  alignment.
+* New `palette`, `ramps`, `alarm` and `map_colours` settings replace the
+  built-in colours. `palette` replaces the categorical colours, `ramps`
+  replaces a ramp by name or adds a new one, `alarm` replaces the alarm
+  colour, and `map_colours` is merged into the map colours.
+  `pub_palette()`, `pub_ramp()`, `pub_alarm()`, `pub_map_colours()` and
+  `move_cell()` gain `config` to read them. `pub_ramp()` takes any ramp
+  name the configuration holds, and its error lists them.
+* With the defaults, every slide and saved figure is the same as in
+  0.3.0.
+
 # pubdeck 0.3.0
 
 * `deck_note_height()` wraps each row of an explainer box in the deck

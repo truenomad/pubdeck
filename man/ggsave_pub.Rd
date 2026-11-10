@@ -15,6 +15,7 @@ ggsave_pub(
   ...,
   grob = NULL,
   png_device = NULL,
+  compress = NULL,
   config = deck_config_get()
 )
 }
@@ -45,6 +46,10 @@ setting of \code{config}, which is \code{TRUE} unless set.}
 Default \code{NULL}, the \code{png_device} setting of \code{config}, which is
 \code{"ragg"} unless set.}
 
+\item{compress}{Logical. Compress a PNG with \code{\link[=compress_pub]{compress_pub()}}. Default
+\code{NULL}, the \code{compress_png} setting of \code{config}, which is \code{TRUE} unless
+set.}
+
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
 }
@@ -55,7 +60,8 @@ The path, invisibly.
 Saves a plot with \code{ggplot2::ggsave()} at a stated width and height, so
 the file that is checked is the file that ships. A PNG is drawn with
 \code{ragg::agg_png()}, so the picture does not depend on which devices the
-machine has, and is compressed with \code{\link[=compress_pub]{compress_pub()}}. For a chart saved
+machine has, and is compressed with \code{\link[=compress_pub]{compress_pub()}} unless \code{compress}
+or the \code{compress_png} setting is \code{FALSE}. For a chart saved
 as PNG, the drawn chart is also kept beside the file with
 \code{\link[=save_pub_grob]{save_pub_grob()}}, so \code{\link[=deck_figure]{deck_figure()}} can place it as native PowerPoint
 shapes. A report that places pictures only turns that off with \code{grob}
@@ -68,6 +74,6 @@ plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
 path <- file.path(tempdir(), "fuel_economy.png")
 ggsave_pub(plot, path, width = 6, height = 3)
 
-# the picture alone
-ggsave_pub(plot, path, width = 6, height = 3, grob = FALSE)
+# the picture alone, left as the device drew it
+ggsave_pub(plot, path, width = 6, height = 3, grob = FALSE, compress = FALSE)
 }

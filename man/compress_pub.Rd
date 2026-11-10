@@ -4,10 +4,16 @@
 \alias{compress_pub}
 \title{Compress a PNG in Place}
 \usage{
-compress_pub(path)
+compress_pub(path, compress = NULL, config = deck_config_get())
 }
 \arguments{
 \item{path}{File path.}
+
+\item{compress}{Logical. Compress the file. Default \code{NULL}, the
+\code{compress_png} setting of \code{config}, which is \code{TRUE} unless set.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force.}
 }
 \value{
 The path, invisibly.
@@ -16,8 +22,11 @@ The path, invisibly.
 Compresses a PNG with \code{poliprep::compress_png()}. Any other file, a
 missing file, and a session without the 'poliprep' package are left
 untouched. A failed compression is reported as a warning and does not
-stop the run.
+stop the run. With \code{compress} or the \code{compress_png} setting \code{FALSE},
+nothing is done, for a report that keeps its figures as the device drew
+them.
 }
 \examples{
 compress_pub(file.path(tempdir(), "no_such_figure.png"))
+compress_pub(file.path(tempdir(), "no_such_figure.png"), compress = FALSE)
 }

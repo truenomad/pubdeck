@@ -4,7 +4,12 @@
 \alias{pub_alarm}
 \title{Alarm Colour}
 \usage{
-pub_alarm()
+pub_alarm(config = deck_config_get())
+}
+\arguments{
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force. Its \code{alarm} setting replaces the built-in
+colour.}
 }
 \value{
 A single hex colour.
@@ -15,4 +20,5 @@ used for an ordinary series.
 }
 \examples{
 pub_alarm()
+pub_alarm(config = deck_config(alarm = "#C0392B"))
 }

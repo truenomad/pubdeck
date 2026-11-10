@@ -4,13 +4,18 @@
 \alias{pub_ramp}
 \title{Ordered House Colour Ramps}
 \usage{
-pub_ramp(name = c("coverage", "harm", "silence", "diverging"), n = NULL)
+pub_ramp(name = "coverage", n = NULL, config = deck_config_get())
 }
 \arguments{
-\item{name}{One of \code{"coverage"}, \code{"harm"}, \code{"silence"} or \code{"diverging"}.}
+\item{name}{Name of a ramp the configuration holds: \code{"coverage"},
+\code{"harm"}, \code{"silence"}, \code{"diverging"}, or a name the \code{ramps} setting
+adds. Default \code{"coverage"}.}
 
 \item{n}{Number of colours. Default \code{NULL}, the ramp as defined. With
 \code{n}, the ramp is interpolated to exactly \code{n} colours.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force.}
 }
 \value{
 Character vector of hex colours.
@@ -20,9 +25,14 @@ Returns one of the ordered ramps. \code{"coverage"} runs from low red to high
 blue and is the same on every map, so a reader learns it once. \code{"harm"}
 runs from white to dark red. \code{"silence"} runs from pale to deep purple
 and is for elapsed time, which is not an alarm scale. \code{"diverging"} runs
-from low blue to high red around a neutral middle band.
+from low blue to high red around a neutral middle band. The \code{ramps}
+setting replaces any of these by name and adds ramps of its own.
 }
 \examples{
 pub_ramp("coverage")
 pub_ramp("harm", n = 7)
+
+# a ramp of the report's own
+config <- deck_config(ramps = list(seq5_blue = c("#F7F7F7", "#2166AC")))
+pub_ramp("seq5_blue", config = config)
 }

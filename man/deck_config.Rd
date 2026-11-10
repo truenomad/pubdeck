@@ -26,7 +26,7 @@ setting by name for one call, as in
 \code{deck_panel(deck, geom, heading, lines, panel_marker = "- ")}.
 }
 \details{
-Settings fall into seven groups.
+Settings fall into eight groups.
 
 \strong{Template.} \code{template} is the path to the \code{.pptx} template and has no
 default. \code{master} names its slide master. \code{layouts} names the layouts
@@ -141,8 +141,21 @@ are the resolutions for charts and maps; a \code{map_dpi} of \code{NULL} saves
 maps at \code{dpi}. \code{save_grob} says whether \code{\link[=ggsave_pub]{ggsave_pub()}} keeps the drawn
 chart beside its PNG. \code{png_device} is the device \code{\link[=ggsave_pub]{ggsave_pub()}} draws a
 PNG with: \code{"ragg"} names \code{ragg::agg_png()}, and \code{"default"} leaves the
-choice to 'ggplot2'. \code{vector_max_bytes} and \code{vector_scale_tolerance}
-decide when a chart is placed as native shapes.
+choice to 'ggplot2'. \code{compress_png} says whether \code{\link[=compress_pub]{compress_pub()}}
+compresses a PNG, and so whether \code{\link[=ggsave_pub]{ggsave_pub()}}, \code{\link[=gtsave_pub]{gtsave_pub()}} and
+\code{\link[=trim_png]{trim_png()}} compress the files they write; it is \code{TRUE} unless set.
+\code{vector_max_bytes} and \code{vector_scale_tolerance} decide when a chart is
+placed as native shapes.
+
+\strong{Colours.} Each colour setting is \code{NULL} unless set, which means the
+built-in colours. \code{palette} is a character vector of categorical
+colours that replaces the one \code{\link[=pub_palette]{pub_palette()}} returns, the first colour
+being the focal series. \code{ramps} is a named list of character vectors
+read by \code{\link[=pub_ramp]{pub_ramp()}}: a name the package already has replaces that
+ramp, and a new name adds a ramp. \code{alarm} is the single colour
+\code{\link[=pub_alarm]{pub_alarm()}} returns, which \code{\link[=move_cell]{move_cell()}} also takes. \code{map_colours} is
+a named character vector merged into the colours \code{\link[=pub_map_colours]{pub_map_colours()}}
+returns, so a name given replaces that colour and a new name adds one.
 
 \strong{Theme.} \code{theme_family} is the typeface of \code{\link[=theme_pub]{theme_pub()}}, and the
 device default when empty. \code{theme_title_position} is \code{"plot"} or
@@ -152,7 +165,8 @@ margins of \code{\link[=theme_pub]{theme_pub()}} and \code{\link[=theme_pub_pane
 panel, in \code{theme_frame_colour} at \code{theme_frame_linewidth}.
 
 A nested setting such as \code{contents_slide} or \code{layouts} is merged into
-its default, so one field can be changed alone.
+its default, so one field can be changed alone. \code{ramps} given over a
+\code{base} that holds ramps is merged the same way, and may add a name.
 
 The default layout names, placeholder labels, boxes, sizes and colours
 describe the templates the builders were first written for. A report

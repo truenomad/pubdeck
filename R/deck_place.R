@@ -271,7 +271,8 @@ deck_split_box <- function(box, n = 2, gap = 0.2) {
 #' @param box A list of `left`, `top`, `width` and `height`, in inches.
 #' @param align Horizontal position in the box: `"centre"`, `"right"` or
 #'   `"left"`.
-#' @param valign Vertical position in the box: `"centre"` or `"top"`.
+#' @param valign Vertical position in the box: `"centre"`, `"top"` or
+#'   `"bottom"`. Default `"centre"`.
 #'
 #' @return An `officer::ph_location()` object.
 #'
@@ -281,10 +282,17 @@ deck_split_box <- function(box, n = 2, gap = 0.2) {
 #'   box = list(left = 1, top = 1, width = 6, height = 3),
 #'   align = "right"
 #' )
+#'
+#' # resting on the foot of the box
+#' deck_place_in_box(
+#'   fit = list(width = 4, height = 2),
+#'   box = list(left = 1, top = 1, width = 6, height = 3),
+#'   valign = "bottom"
+#' )
 #' @export
 deck_place_in_box <- function(fit, box,
                               align = c("centre", "right", "left"),
-                              valign = c("centre", "top")) {
+                              valign = c("centre", "top", "bottom")) {
   align <- rlang::arg_match(align)
   valign <- rlang::arg_match(valign)
 
@@ -298,7 +306,8 @@ deck_place_in_box <- function(fit, box,
   top <- switch(
     valign,
     centre = box$top + (box$height - fit$height) / 2,
-    top = box$top
+    top = box$top,
+    bottom = box$top + (box$height - fit$height)
   )
 
   officer::ph_location(

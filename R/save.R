@@ -52,7 +52,8 @@
 #' Saves a plot with `ggplot2::ggsave()` at a stated width and height, so
 #' the file that is checked is the file that ships. A PNG is drawn with
 #' `ragg::agg_png()`, so the picture does not depend on which devices the
-#' machine has, and is compressed with [compress_pub()]. For a chart saved
+#' machine has, and is compressed with [compress_pub()] unless `compress`
+#' or the `compress_png` setting is `FALSE`. For a chart saved
 #' as PNG, the drawn chart is also kept beside the file with
 #' [save_pub_grob()], so [deck_figure()] can place it as native PowerPoint
 #' shapes. A report that places pictures only turns that off with `grob`
@@ -75,6 +76,9 @@
 #'   `ragg::agg_png()`. `"default"` leaves the choice to 'ggplot2'.
 #'   Default `NULL`, the `png_device` setting of `config`, which is
 #'   `"ragg"` unless set.
+#' @param compress Logical. Compress a PNG with [compress_pub()]. Default
+#'   `NULL`, the `compress_png` setting of `config`, which is `TRUE` unless
+#'   set.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
 #'
@@ -87,12 +91,12 @@
 #' path <- file.path(tempdir(), "fuel_economy.png")
 #' ggsave_pub(plot, path, width = 6, height = 3)
 #'
-#' # the picture alone
-#' ggsave_pub(plot, path, width = 6, height = 3, grob = FALSE)
+#' # the picture alone, left as the device drew it
+#' ggsave_pub(plot, path, width = 6, height = 3, grob = FALSE, compress = FALSE)
 #' @export
 ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
                        scale = 1, ..., grob = NULL, png_device = NULL,
-                       config = deck_config_get()) {
+                       compress = NULL, config = deck_config_get()) {
   if (missing(width) || missing(height)) {
     cli::cli_abort(c(
       "{.arg width} and {.arg height} are required.",
@@ -123,7 +127,7 @@ ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
     !!!.ggsave_extras(path, png_device, ...)
   ))
 
-  compress_pub(path)
+  compress_pub(path, compress = compress, config = config)
 
   if (grob %||% config$save_grob) {
     save_pub_grob(plot, path, width * scale, height * scale, is_map)
@@ -186,16 +190,27 @@ save_pub_grob <- function(plot, path, width, height, is_map) {
 #' Compresses a PNG with `poliprep::compress_png()`. Any other file, a
 #' missing file, and a session without the 'poliprep' package are left
 #' untouched. A failed compression is reported as a warning and does not
-#' stop the run.
+#' stop the run. With `compress` or the `compress_png` setting `FALSE`,
+#' nothing is done, for a report that keeps its figures as the device drew
+#' them.
 #'
 #' @param path File path.
+#' @param compress Logical. Compress the file. Default `NULL`, the
+#'   `compress_png` setting of `config`, which is `TRUE` unless set.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force.
 #'
 #' @return The path, invisibly.
 #'
 #' @examples
 #' compress_pub(file.path(tempdir(), "no_such_figure.png"))
+#' compress_pub(file.path(tempdir(), "no_such_figure.png"), compress = FALSE)
 #' @export
-compress_pub <- function(path) {
+compress_pub <- function(path, compress = NULL, config = deck_config_get()) {
+  if (!.compress_png(compress, config)) {
+    return(invisible(path))
+  }
+
   is_png <- fs::file_exists(path) && fs::path_ext(path) == "png"
 
   if (!is_png || !rlang::is_installed("poliprep")) {
@@ -215,6 +230,22 @@ compress_pub <- function(path) {
   invisible(path)
 }
 
+# whether a PNG is compressed: the call's choice, else the setting
+#' @noRd
+.compress_png <- function(compress, config) {
+  compress <- compress %||% config$compress_png
+
+  if (!rlang::is_bool(compress)) {
+    cli::cli_abort(
+      "{.arg compress} and the {.field compress_png} setting must be
+       {.code TRUE} or {.code FALSE}.",
+      call = rlang::caller_env()
+    )
+  }
+
+  compress
+}
+
 #' Trim the Margin of a PNG
 #'
 #' Trims the empty margin around an image to a thin border, then
@@ -224,21 +255,27 @@ compress_pub <- function(path) {
 #' @param border Width of the border left around the image, in pixels.
 #'   Default `6`.
 #' @param border_colour Colour of the border. Default `"white"`.
+#' @param compress Logical. Compress the trimmed file. Default `NULL`, the
+#'   `compress_png` setting of `config`, which is `TRUE` unless set.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force.
 #'
 #' @return The path, invisibly.
 #'
 #' @examples
 #' \dontrun{
 #' trim_png("outputs/table.png")
+#' trim_png("outputs/table.png", compress = FALSE)
 #' }
 #' @export
-trim_png <- function(path, border = 6, border_colour = "white") {
+trim_png <- function(path, border = 6, border_colour = "white",
+                     compress = NULL, config = deck_config_get()) {
   magick::image_read(path) |>
     magick::image_trim() |>
     magick::image_border(border_colour, paste0(border, "x", border)) |>
     magick::image_write(path)
 
-  compress_pub(path)
+  compress_pub(path, compress = compress, config = config)
 
   invisible(path)
 }
@@ -260,6 +297,9 @@ trim_png <- function(path, border = 6, border_colour = "white") {
 #'   `table_row_padding` setting of `config`.
 #' @param px_per_in Pixels per inch of the viewport. Default `132`.
 #' @param zoom Zoom factor passed to `gt::gtsave()`. Default `3`.
+#' @param compress Logical. Compress the PNG with [compress_pub()].
+#'   Default `NULL`, the `compress_png` setting of `config`, which is
+#'   `TRUE` unless set.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
 #'
@@ -276,7 +316,7 @@ trim_png <- function(path, border = 6, border_colour = "white") {
 #' }
 #' @export
 gtsave_pub <- function(build, path, width, height, pad = NULL,
-                       px_per_in = 132, zoom = 3,
+                       px_per_in = 132, zoom = 3, compress = NULL,
                        config = deck_config_get()) {
   rlang::check_installed("webshot2", reason = "to save a gt table as a PNG.")
 
@@ -292,7 +332,7 @@ gtsave_pub <- function(build, path, width, height, pad = NULL,
     zoom = zoom
   )
 
-  compress_pub(path)
+  compress_pub(path, compress = compress, config = config)
 
   final <- magick::image_info(magick::image_read(path))
   aspect <- final$width / final$height

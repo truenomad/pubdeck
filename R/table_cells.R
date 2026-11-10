@@ -178,14 +178,18 @@ spark_cell <- function(series, floor, width = 62, height = 16,
 #' @param change Numeric vector of places moved. Positive is up the list.
 #' @param is_new Logical vector. The row was not on the previous list.
 #' @param alarm Colour for a move up and for a new row. Default
-#'   [pub_alarm()].
+#'   `pub_alarm(config)`, the `alarm` setting of `config` or the built-in
+#'   alarm colour where it is not set.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force.
 #'
 #' @return Character vector of HTML, one element per row.
 #'
 #' @examples
 #' move_cell(change = c(2, -1, 0, NA), is_new = c(FALSE, FALSE, FALSE, TRUE))
 #' @export
-move_cell <- function(change, is_new, alarm = pub_alarm()) {
+move_cell <- function(change, is_new, alarm = pub_alarm(config),
+                      config = deck_config_get()) {
   arrow <- dplyr::case_when(
     is_new ~ "new",
     change > 0 ~ paste0("&#9650; ", change),

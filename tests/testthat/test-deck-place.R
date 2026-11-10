@@ -72,6 +72,19 @@ test_that("deck_place_in_box aligns an image inside its box", {
   expect_error(deck_place_in_box(fit, box, align = "middle"))
 })
 
+test_that("deck_place_in_box rests an image on the foot of its box", {
+  fit <- list(width = 4, height = 2)
+  box <- list(left = 1, top = 1, width = 6, height = 3)
+
+  bottom <- deck_place_in_box(fit, box, valign = "bottom")
+  left_bottom <- deck_place_in_box(fit, box, align = "left", valign = "bottom")
+
+  expect_equal(c(bottom$left, bottom$top), c(2, 2))
+  expect_equal(bottom$top + bottom$height, box$top + box$height)
+  expect_equal(c(left_bottom$left, left_bottom$top), c(1, 2))
+  expect_error(deck_place_in_box(fit, box, valign = "middle"))
+})
+
 test_that("deck_box_location turns a box into a slide location", {
   box <- list(left = 1, top = 2, width = 6, height = 3)
   plain <- deck_box_location(box)

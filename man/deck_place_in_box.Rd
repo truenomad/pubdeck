@@ -8,7 +8,7 @@ deck_place_in_box(
   fit,
   box,
   align = c("centre", "right", "left"),
-  valign = c("centre", "top")
+  valign = c("centre", "top", "bottom")
 )
 }
 \arguments{
@@ -20,7 +20,8 @@ returns.}
 \item{align}{Horizontal position in the box: \code{"centre"}, \code{"right"} or
 \code{"left"}.}
 
-\item{valign}{Vertical position in the box: \code{"centre"} or \code{"top"}.}
+\item{valign}{Vertical position in the box: \code{"centre"}, \code{"top"} or
+\code{"bottom"}. Default \code{"centre"}.}
 }
 \value{
 An \code{officer::ph_location()} object.
@@ -34,5 +35,12 @@ deck_place_in_box(
   fit = list(width = 4, height = 2),
   box = list(left = 1, top = 1, width = 6, height = 3),
   align = "right"
+)
+
+# resting on the foot of the box
+deck_place_in_box(
+  fit = list(width = 4, height = 2),
+  box = list(left = 1, top = 1, width = 6, height = 3),
+  valign = "bottom"
 )
 }

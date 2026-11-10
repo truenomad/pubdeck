@@ -4,23 +4,29 @@
 \alias{pub_palette}
 \title{Categorical House Palette}
 \usage{
-pub_palette(n = NULL, named = NULL)
+pub_palette(n = NULL, named = NULL, config = deck_config_get())
 }
 \arguments{
-\item{n}{Number of colours to return. Default \code{NULL}, all eight.}
+\item{n}{Number of colours to return. Default \code{NULL}, all of them.}
 
 \item{named}{Character vector of entity names. When given, the result
 is a named vector with one colour per entity, and \code{n} is ignored.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force. Its \code{palette} setting replaces the
+built-in colours.}
 }
 \value{
 Character vector of hex colours, named when \code{named} is given.
 }
 \description{
-Returns the eight categorical colours used for series. The first colour
-is the focal series. Bind a colour to an entity once with \code{named}, then
-reuse the result across a report so each entity keeps its colour.
+Returns the categorical colours used for series, eight unless the
+\code{palette} setting holds a palette of its own. The first colour is the
+focal series. Bind a colour to an entity once with \code{named}, then reuse
+the result across a report so each entity keeps its colour.
 }
 \examples{
 pub_palette(3)
 pub_palette(named = c("Env", "AFP", "Contact"))
+pub_palette(config = deck_config(palette = c("#B5693F", "#476074")))
 }

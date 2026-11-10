@@ -238,8 +238,14 @@
     map_dpi = 200,
     save_grob = TRUE,
     png_device = "ragg",
+    compress_png = TRUE,
     vector_max_bytes = 5e5,
     vector_scale_tolerance = 0.1,
+    # colours
+    palette = NULL,
+    ramps = NULL,
+    alarm = NULL,
+    map_colours = NULL,
     # theme
     theme_family = "",
     theme_title_position = "plot",
@@ -251,10 +257,14 @@
   )
 }
 
+# settings whose fields are named by the report, so a new field is added
+#' @noRd
+.open_settings <- c("ramps")
+
 # a nested setting is merged into its default, so one field can be changed
 # without restating the rest; a table or a vector replaces the default
 #' @noRd
-.merge_setting <- function(default, value) {
+.merge_setting <- function(default, value, open = FALSE) {
   nested <- is.list(default) && !is.data.frame(default) &&
     is.list(value) && !is.data.frame(value)
 
@@ -264,7 +274,7 @@
 
   unknown <- setdiff(names(value), names(default))
 
-  if (length(unknown) > 0) {
+  if (length(unknown) > 0 && !open) {
     cli::cli_abort("Unknown field{?s} {.val {unknown}} in a nested setting.")
   }
 
@@ -285,7 +295,7 @@
 #' `deck_panel(deck, geom, heading, lines, panel_marker = "- ")`.
 #'
 #' @details
-#' Settings fall into seven groups.
+#' Settings fall into eight groups.
 #'
 #' **Template.** `template` is the path to the `.pptx` template and has no
 #' default. `master` names its slide master. `layouts` names the layouts
@@ -400,8 +410,21 @@
 #' maps at `dpi`. `save_grob` says whether [ggsave_pub()] keeps the drawn
 #' chart beside its PNG. `png_device` is the device [ggsave_pub()] draws a
 #' PNG with: `"ragg"` names `ragg::agg_png()`, and `"default"` leaves the
-#' choice to 'ggplot2'. `vector_max_bytes` and `vector_scale_tolerance`
-#' decide when a chart is placed as native shapes.
+#' choice to 'ggplot2'. `compress_png` says whether [compress_pub()]
+#' compresses a PNG, and so whether [ggsave_pub()], [gtsave_pub()] and
+#' [trim_png()] compress the files they write; it is `TRUE` unless set.
+#' `vector_max_bytes` and `vector_scale_tolerance` decide when a chart is
+#' placed as native shapes.
+#'
+#' **Colours.** Each colour setting is `NULL` unless set, which means the
+#' built-in colours. `palette` is a character vector of categorical
+#' colours that replaces the one [pub_palette()] returns, the first colour
+#' being the focal series. `ramps` is a named list of character vectors
+#' read by [pub_ramp()]: a name the package already has replaces that
+#' ramp, and a new name adds a ramp. `alarm` is the single colour
+#' [pub_alarm()] returns, which [move_cell()] also takes. `map_colours` is
+#' a named character vector merged into the colours [pub_map_colours()]
+#' returns, so a name given replaces that colour and a new name adds one.
 #'
 #' **Theme.** `theme_family` is the typeface of [theme_pub()], and the
 #' device default when empty. `theme_title_position` is `"plot"` or
@@ -411,7 +434,8 @@
 #' panel, in `theme_frame_colour` at `theme_frame_linewidth`.
 #'
 #' A nested setting such as `contents_slide` or `layouts` is merged into
-#' its default, so one field can be changed alone.
+#' its default, so one field can be changed alone. `ramps` given over a
+#' `base` that holds ramps is merged the same way, and may add a name.
 #'
 #' The default layout names, placeholder labels, boxes, sizes and colours
 #' describe the templates the builders were first written for. A report
@@ -460,9 +484,9 @@ deck_config <- function(..., base = NULL) {
 
   config <- unclass(base) %||% .config_defaults()
 
-  merged <- purrr::imap(
-    overrides, \(value, name) .merge_setting(config[[name]], value)
-  )
+  merged <- purrr::imap(overrides, \(value, name) {
+    .merge_setting(config[[name]], value, open = name %in% .open_settings)
+  })
 
   # assigned by single bracket so a setting given as NULL stays in the list
   config[names(merged)] <- merged

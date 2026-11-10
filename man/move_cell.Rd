@@ -4,7 +4,12 @@
 \alias{move_cell}
 \title{Show a Change in Rank}
 \usage{
-move_cell(change, is_new, alarm = pub_alarm())
+move_cell(
+  change,
+  is_new,
+  alarm = pub_alarm(config),
+  config = deck_config_get()
+)
 }
 \arguments{
 \item{change}{Numeric vector of places moved. Positive is up the list.}
@@ -12,7 +17,11 @@ move_cell(change, is_new, alarm = pub_alarm())
 \item{is_new}{Logical vector. The row was not on the previous list.}
 
 \item{alarm}{Colour for a move up and for a new row. Default
-\code{\link[=pub_alarm]{pub_alarm()}}.}
+\code{pub_alarm(config)}, the \code{alarm} setting of \code{config} or the built-in
+alarm colour where it is not set.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force.}
 }
 \value{
 Character vector of HTML, one element per row.

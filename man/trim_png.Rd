@@ -4,7 +4,13 @@
 \alias{trim_png}
 \title{Trim the Margin of a PNG}
 \usage{
-trim_png(path, border = 6, border_colour = "white")
+trim_png(
+  path,
+  border = 6,
+  border_colour = "white",
+  compress = NULL,
+  config = deck_config_get()
+)
 }
 \arguments{
 \item{path}{Path of the PNG, which is overwritten.}
@@ -13,6 +19,12 @@ trim_png(path, border = 6, border_colour = "white")
 Default \code{6}.}
 
 \item{border_colour}{Colour of the border. Default \code{"white"}.}
+
+\item{compress}{Logical. Compress the trimmed file. Default \code{NULL}, the
+\code{compress_png} setting of \code{config}, which is \code{TRUE} unless set.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force.}
 }
 \value{
 The path, invisibly.
@@ -24,5 +36,6 @@ compresses the file with \code{\link[=compress_pub]{compress_pub()}}.
 \examples{
 \dontrun{
 trim_png("outputs/table.png")
+trim_png("outputs/table.png", compress = FALSE)
 }
 }

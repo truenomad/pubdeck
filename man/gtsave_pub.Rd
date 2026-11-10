@@ -12,6 +12,7 @@ gtsave_pub(
   pad = NULL,
   px_per_in = 132,
   zoom = 3,
+  compress = NULL,
   config = deck_config_get()
 )
 }
@@ -29,6 +30,10 @@ a gt table.}
 \item{px_per_in}{Pixels per inch of the viewport. Default \code{132}.}
 
 \item{zoom}{Zoom factor passed to \code{gt::gtsave()}. Default \code{3}.}
+
+\item{compress}{Logical. Compress the PNG with \code{\link[=compress_pub]{compress_pub()}}.
+Default \code{NULL}, the \code{compress_png} setting of \code{config}, which is
+\code{TRUE} unless set.}
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}

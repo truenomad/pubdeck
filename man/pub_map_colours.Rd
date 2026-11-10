@@ -4,7 +4,11 @@
 \alias{pub_map_colours}
 \title{Map Fills and Outline Colours}
 \usage{
-pub_map_colours()
+pub_map_colours(config = deck_config_get())
+}
+\arguments{
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force.}
 }
 \value{
 Named character vector of colours.
@@ -16,8 +20,12 @@ never dropped. \code{no_detection} is for a counted zero, and is neutral
 because green against a red ramp is unreadable with a colour vision
 deficiency. The \verb{focus_*} colours are for the reporting country and the
 \verb{context_*} colours for a neighbour shown for context. The \verb{contested*}
-colours are for ground that carries no data.
+colours are for ground that carries no data. The \code{map_colours} setting
+replaces any of these by name and adds colours of its own.
 }
 \examples{
 pub_map_colours()[["not_measured"]]
+pub_map_colours(
+  config = deck_config(map_colours = c(not_measured = "grey80"))
+)[["not_measured"]]
 }
