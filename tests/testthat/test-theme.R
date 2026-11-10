@@ -51,6 +51,115 @@ test_that("theme_pub_cols angles the x labels unless the angle is zero", {
   expect_equal(theme_pub_cols()$legend.justification, "right")
 })
 
+test_that("theme_pub draws a panel frame only when asked", {
+  framed <- theme_pub(frame = TRUE)$panel.border
+  styled <- theme_pub(
+    frame = TRUE, frame_colour = "grey40", frame_linewidth = 1
+  )$panel.border
+
+  expect_s3_class(theme_pub()$panel.border, "element_blank")
+  expect_s3_class(theme_pub(frame = FALSE)$panel.border, "element_blank")
+  expect_s3_class(framed, "element_rect")
+  expect_equal(framed$colour, "black")
+  expect_equal(framed$linewidth, 0.43)
+  expect_true(is.na(framed$fill))
+  expect_equal(styled$colour, "grey40")
+  expect_equal(styled$linewidth, 1)
+})
+
+test_that("theme_pub takes its typeface, title position and margins", {
+  theme <- theme_pub(
+    family = "serif", title_position = "panel",
+    plot_margin = list(t = 18, r = 24, b = 14, l = 18)
+  )
+
+  expect_equal(theme$text$family, "serif")
+  expect_equal(theme$plot.title.position, "panel")
+  expect_equal(as.numeric(theme$plot.margin), c(18, 24, 14, 18))
+  expect_equal(
+    as.numeric(theme_pub(plot_margin = list(r = 30))$plot.margin),
+    c(8, 30, 6, 8)
+  )
+})
+
+test_that("theme_pub reads its settings from the configuration", {
+  config <- deck_config(
+    theme_frame = TRUE, theme_frame_colour = "grey20",
+    theme_frame_linewidth = 0.8, theme_family = "mono",
+    theme_title_position = "panel", theme_plot_margin = list(l = 30)
+  )
+  theme <- theme_pub(config = config)
+
+  expect_equal(theme$panel.border$colour, "grey20")
+  expect_equal(theme$panel.border$linewidth, 0.8)
+  expect_equal(theme$text$family, "mono")
+  expect_equal(theme$plot.title.position, "panel")
+  expect_equal(as.numeric(theme$plot.margin), c(8, 10, 6, 30))
+  expect_s3_class(
+    theme_pub(frame = FALSE, config = config)$panel.border, "element_blank"
+  )
+  expect_equal(
+    theme_pub(family = "serif", config = config)$text$family, "serif"
+  )
+  expect_equal(with_deck_config(config, theme_pub()$text$family), "mono")
+})
+
+test_that("theme_pub is unchanged by settings left at their defaults", {
+  stated <- theme_pub(
+    frame = FALSE, family = "", title_position = "plot",
+    plot_margin = list(t = 8, r = 10, b = 6, l = 8)
+  )
+
+  expect_identical(theme_pub(), stated)
+  expect_identical(theme_pub(grid = "y"), theme_pub(10, "y", FALSE))
+  expect_equal(as.numeric(theme_pub()$plot.margin), c(8, 10, 6, 8))
+  expect_equal(theme_pub()$plot.title.position, "plot")
+  expect_equal(theme_pub()$text$family, "")
+})
+
+test_that("the map, panel and column themes follow the configuration", {
+  config <- deck_config(theme_family = "mono", theme_frame = TRUE)
+
+  expect_equal(theme_pub_map(config = config)$text$family, "mono")
+  expect_equal(theme_pub_map(config = config)$panel.border$colour, "grey45")
+  expect_equal(theme_pub_cols(config = config)$text$family, "mono")
+  expect_s3_class(theme_pub_cols(config = config)$panel.border, "element_rect")
+  expect_equal(theme_pub_panel(config = config)$text$family, "mono")
+  expect_equal(
+    theme_pub_panel(map = TRUE, config = config)$text$family, "mono"
+  )
+})
+
+test_that("the map and column themes pass their settings to theme_pub", {
+  expect_equal(theme_pub_map(family = "serif")$text$family, "serif")
+  expect_equal(
+    theme_pub_map(title_position = "panel")$plot.title.position, "panel"
+  )
+  expect_equal(theme_pub_cols(family = "serif")$text$family, "serif")
+  expect_s3_class(theme_pub_cols(frame = TRUE)$panel.border, "element_rect")
+  expect_equal(
+    as.numeric(theme_pub_cols(plot_margin = list(t = 20))$plot.margin),
+    c(20, 10, 6, 8)
+  )
+  expect_identical(theme_pub_map(), theme_pub_map(family = ""))
+  expect_identical(theme_pub_cols(), theme_pub_cols(frame = FALSE))
+})
+
+test_that("theme_pub_panel takes its margins as given and from the config", {
+  given <- theme_pub_panel(plot_margin = list(t = 12, r = 16, b = 10, l = 12))
+  from_config <- theme_pub_panel(
+    config = deck_config(theme_panel_margin = list(b = 9))
+  )
+
+  on_map <- theme_pub_panel(map = TRUE, plot_margin = list(l = 1))
+
+  expect_equal(as.numeric(theme_pub_panel()$plot.margin), c(4, 6, 2, 4))
+  expect_equal(as.numeric(given$plot.margin), c(12, 16, 10, 12))
+  expect_equal(as.numeric(from_config$plot.margin), c(4, 6, 9, 4))
+  expect_equal(as.numeric(on_map$plot.margin), c(4, 6, 2, 1))
+  expect_s3_class(theme_pub_panel(frame = TRUE)$panel.border, "element_rect")
+})
+
 test_that("label_mag writes thousands and millions in short form", {
   expect_equal(label_mag()(c(1200, 4200000)), c("1K", "4M"))
   expect_equal(label_mag(accuracy = 0.1)(c(1250, 4260000)), c("1.2K", "4.3M"))

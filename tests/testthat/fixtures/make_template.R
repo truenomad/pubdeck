@@ -30,6 +30,11 @@ renames <- list(
       "Content Placeholder 3" = "note",
       "Footer Placeholder 5" = "section"
     )
+  ),
+  # a page with a foot strip only, for the builders that place every box
+  "Blank" = list(
+    layout = "section2_overview_maps",
+    labels = c("Footer Placeholder 2" = "section")
   )
 )
 

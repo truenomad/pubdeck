@@ -11,7 +11,8 @@ deck_subtitle(
   colour = NULL,
   align = "left",
   bold = FALSE,
-  config = deck_config_get()
+  config = deck_config_get(),
+  weight = NULL
 )
 
 deck_page_subtitle(text, config = deck_config_get())
@@ -31,6 +32,10 @@ setting of \code{config}.}
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
+
+\item{weight}{Text weight: \code{"regular"}, \code{"semibold"} or \code{"bold"}, as
+\code{\link[=deck_fp_text]{deck_fp_text()}} takes it. Default \code{NULL}, which follows \code{bold}. A
+weight given here takes precedence over \code{bold}.}
 }
 \value{
 An \code{officer::fpar()} paragraph.
@@ -43,5 +48,6 @@ placeholder of the template, for a layout that reserves none.
 }
 \examples{
 deck_subtitle("Cases by week of onset")
+deck_subtitle("Cases by week of onset", weight = "semibold")
 deck_page_subtitle("Cases by week of onset")
 }

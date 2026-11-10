@@ -16,22 +16,35 @@
 #' @param bold Logical. Default `FALSE`.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
+#' @param weight Text weight: `"regular"`, `"semibold"` or `"bold"`, as
+#'   [deck_fp_text()] takes it. Default `NULL`, which follows `bold`. A
+#'   weight given here takes precedence over `bold`.
 #'
 #' @return An `officer::fpar()` paragraph.
 #'
 #' @examples
 #' deck_subtitle("Cases by week of onset")
+#' deck_subtitle("Cases by week of onset", weight = "semibold")
 #' deck_page_subtitle("Cases by week of onset")
 #' @export
 deck_subtitle <- function(text, size = NULL, colour = NULL, align = "left",
-                          bold = FALSE, config = deck_config_get()) {
-  .text_run(
-    text,
-    size = size %||% config$subtitle_pt,
-    colour = colour %||% config$subtitle_colour,
-    font = config$font,
-    bold = bold,
-    align = align
+                          bold = FALSE, config = deck_config_get(),
+                          weight = NULL) {
+  size <- size %||% config$subtitle_pt
+  colour <- colour %||% config$subtitle_colour
+
+  if (is.null(weight)) {
+    return(.text_run(
+      text, size = size, colour = colour, font = config$font, bold = bold,
+      align = align
+    ))
+  }
+
+  officer::fpar(
+    officer::ftext(
+      as.character(text), deck_fp_text(size, colour, weight, config = config)
+    ),
+    fp_p = officer::fp_par(text.align = align, padding = 0)
   )
 }
 
@@ -196,31 +209,42 @@ deck_section_number <- function(section, deck = NULL,
 #'
 #' Adds the divider page that opens a section. A top-level section takes
 #' the numbered layout and a number read off the deck. A section inside
-#' another takes the subsection layout, with a title and no number.
+#' another takes the subsection layout, with a title and no number, and so
+#' does every section of a deck whose dividers carry no number.
 #'
 #' @param deck An `rpptx` object.
 #' @param section Section key.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
+#' @param numbered Logical. Number a top-level divider. Default `NULL`,
+#'   the `section_numbered` setting of `config`, which is `TRUE` unless
+#'   set.
+#' @param layout Name of the layout. Default `NULL`, the `section` layout
+#'   of `config` for a numbered divider and the `subsection` layout for
+#'   one without a number.
 #'
 #' @return The deck, with the divider added.
 #'
 #' @examples
 #' \dontrun{
 #' deck <- deck_section_slide(deck, "campaigns")
+#' deck <- deck_section_slide(deck, "campaigns", numbered = FALSE)
 #' }
 #' @export
-deck_section_slide <- function(deck, section, config = deck_config_get()) {
+deck_section_slide <- function(deck, section, config = deck_config_get(),
+                               numbered = NULL, layout = NULL) {
   sections <- .sections(config)
   .check_section(section, sections)
 
   label <- sections$label[sections$key == section]
+  numbered <- numbered %||% config$section_numbered
 
-  if (.section_is_child(section, sections)) {
+  if (!numbered || .section_is_child(section, sections)) {
     return(
       deck |>
         officer::add_slide(
-          layout = config$layouts$subsection, master = config$master
+          layout = layout %||% config$layouts$subsection,
+          master = config$master
         ) |>
         officer::ph_with(
           value = label, location = .label_location("section_title", config)
@@ -234,7 +258,7 @@ deck_section_slide <- function(deck, section, config = deck_config_get()) {
 
   deck |>
     officer::add_slide(
-      layout = config$layouts$section, master = config$master
+      layout = layout %||% config$layouts$section, master = config$master
     ) |>
     officer::ph_with(
       value = paste0(config$section_prefix, " ", number),
@@ -336,49 +360,9 @@ deck_source_line <- function(sources, as_of = NULL, labels = NULL,
   line
 }
 
-#' Write the Foot Strip of a Page
-#'
-#' Fills the strip at the foot of a page: the section on the left, and on
-#' the right what the page is built from and when. A page that names no
-#' source stops the build, because a slide with no source line reads as
-#' though it needs none.
-#'
-#' @param deck An `rpptx` object, on the slide to change.
-#' @param section Section key.
-#' @param label Text for the left of the strip. Default `NULL`, the label
-#'   of `section` in the configuration.
-#' @param sources Character vector of source keys, passed to
-#'   [deck_source_line()]. Required.
-#' @param as_of Text appended to the source line. Default `NULL`.
-#' @param notes Character vector of further clauses. Default `NULL`.
-#' @param config A configuration built with [deck_config()]. Default is
-#'   the configuration in force.
-#'
-#' @return The deck, with the foot strip filled.
-#'
-#' @examples
-#' \dontrun{
-#' deck <- deck_page_footer(
-#'   deck, "campaigns", sources = "polis", as_of = "Last updated: 9 March"
-#' )
-#' }
-#' @export
-deck_page_footer <- function(deck, section, label = NULL, sources = NULL,
-                             as_of = NULL, notes = NULL,
-                             config = deck_config_get()) {
-  if (is.null(sources)) {
-    cli::cli_abort(c(
-      "The {.val {section}} page footer names no source.",
-      "i" = "Pass {.arg sources}, keys from the {.field source_labels}
-             setting."
-    ))
-  }
-
-  if (is.null(label)) {
-    sections <- .sections(config)
-    label <- sections$label[sections$key == section]
-  }
-
+# the source line of a foot strip, reported when it outgrows the strip
+#' @noRd
+.foot_source_line <- function(sources, as_of, notes, config) {
   line <- deck_source_line(sources, as_of, notes = notes, config = config)
   limit <- config$foot_source_max_chars
 
@@ -389,20 +373,130 @@ deck_page_footer <- function(deck, section, label = NULL, sources = NULL,
     )
   }
 
-  deck |>
-    officer::ph_with(
+  line
+}
+
+# the section label: into the template's placeholder, or drawn in a box
+#' @noRd
+.foot_section <- function(deck, label, box, config) {
+  if (is.null(box)) {
+    return(officer::ph_with(
+      deck,
       value = as.character(label),
       location = .label_location("section", config)
-    ) |>
-    officer::ph_with(
-      value = deck_subtitle(
-        line,
-        size = config$foot_source_pt,
-        colour = config$foot_source_colour,
-        align = "right",
-        bold = TRUE,
-        config = config
-      ),
-      location = .box_location(config$foot_source_box, config$labels$source)
-    )
+    ))
+  }
+
+  officer::ph_with(
+    deck,
+    value = deck_subtitle(
+      label,
+      size = config$foot_section_pt,
+      colour = config$foot_section_colour,
+      config = config,
+      weight = config$foot_section_weight
+    ),
+    location = .box_location(box, config$labels$section)
+  )
+}
+
+#' Write the Foot Strip of a Page
+#'
+#' Fills the strip at the foot of a page: the section on the left, and on
+#' the right what the page is built from and when. A page that names no
+#' source stops the build, because a slide with no source line reads as
+#' though it needs none. A page that carries no finding, such as one that
+#' frames the pages after it, is marked with `framing` and takes the
+#' section label alone.
+#'
+#' The section label goes into the template's placeholder. Where
+#' `section_box` or the `foot_section_box` setting gives a box, the label
+#' is drawn there as a shape of its own, for a template whose layouts
+#' reserve no placeholder for it. A section key the configuration does
+#' not hold then stops the build.
+#'
+#' @param deck An `rpptx` object, on the slide to change.
+#' @param section Section key.
+#' @param label Text for the left of the strip. Default `NULL`, the label
+#'   of `section` in the configuration.
+#' @param sources Character vector of source keys, passed to
+#'   [deck_source_line()]. Required unless `framing` is `TRUE`.
+#' @param as_of Text appended to the source line. Default `NULL`.
+#' @param notes Character vector of further clauses. Default `NULL`.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force.
+#' @param framing Logical. The page carries no finding, so it may name no
+#'   source. Default `FALSE`.
+#' @param section_box Box the section label is drawn in, a list of
+#'   `left`, `top`, `width` and `height` in inches. Default `NULL`, the
+#'   `foot_section_box` setting of `config`. Where that is `NULL` as
+#'   well, the label goes into the placeholder.
+#' @param source_weight Weight of the source line: `"regular"`,
+#'   `"semibold"` or `"bold"`. Default `NULL`, the `foot_source_weight`
+#'   setting of `config`, which is `"bold"` unless set.
+#' @param ... Settings of [deck_config()] to change for this call, as
+#'   `name = value`, such as `foot_section_pt`, `foot_section_colour` or
+#'   `foot_source_box`.
+#'
+#' @return The deck, with the foot strip filled.
+#'
+#' @examples
+#' \dontrun{
+#' deck <- deck_page_footer(
+#'   deck, "campaigns", sources = "polis", as_of = "Last updated: 9 March"
+#' )
+#'
+#' # a page that frames the section and cites nothing
+#' deck <- deck_page_footer(deck, "campaigns", framing = TRUE)
+#' }
+#' @export
+deck_page_footer <- function(deck, section, label = NULL, sources = NULL,
+                             as_of = NULL, notes = NULL,
+                             config = deck_config_get(), framing = FALSE,
+                             section_box = NULL, source_weight = NULL,
+                             ...) {
+  config <- .call_config(config, ...)
+
+  if (is.null(sources) && !framing) {
+    cli::cli_abort(c(
+      "The {.val {section}} page footer names no source.",
+      "i" = "Pass {.arg sources}, keys from the {.field source_labels}
+             setting."
+    ))
+  }
+
+  section_box <- section_box %||% config$foot_section_box
+
+  if (is.null(label)) {
+    sections <- .sections(config)
+
+    if (!is.null(section_box)) {
+      .check_section(section, sections)
+    }
+
+    label <- sections$label[sections$key == section]
+  }
+
+  line <- if (!is.null(sources)) {
+    .foot_source_line(sources, as_of, notes, config)
+  }
+
+  deck <- .foot_section(deck, label, section_box, config)
+
+  if (is.null(line)) {
+    return(deck)
+  }
+
+  officer::ph_with(
+    deck,
+    value = deck_subtitle(
+      line,
+      size = config$foot_source_pt,
+      colour = config$foot_source_colour,
+      align = "right",
+      config = config,
+      weight = source_weight %||% config$foot_source_weight
+    ),
+    location = .box_location(config$foot_source_box, config$labels$source)
+  )
 }

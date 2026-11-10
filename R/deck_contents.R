@@ -58,6 +58,81 @@ deck_contents_entries <- function(deck, config = deck_config_get()) {
     purrr::list_rbind()
 }
 
+#' List the Contents by Page Title
+#'
+#' Reads the contents back off a built deck, as [deck_contents_entries()]
+#' does, with another reading of what a section is. Every divider opens a
+#' section, whatever its level, and the pages under it are listed by
+#' their page titles and not by their foot strips. Use it for a deck
+#' whose pages are worth naming one by one.
+#'
+#' @param deck An `rpptx` object holding the built pages.
+#' @param collapsed Titles of sections to list by their divider alone.
+#'   Default `NULL`, the `contents_collapsed` setting of `config`.
+#' @param dropped Titles of sections to leave out. A section left out
+#'   keeps its number, so the numbers of the others do not move. Default
+#'   `NULL`, the `contents_dropped` setting of `config`.
+#' @param standalone Titles of pages to list as numbered sections of
+#'   their own, though no divider opens them. Default `NULL`, the
+#'   `contents_standalone` setting of `config`.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force.
+#'
+#' @return A tibble with one row per entry and the columns `kind`
+#'   (`"section"` or `"run"`), `number`, `label` and `page`.
+#'
+#' @examples
+#' \dontrun{
+#' entries <- deck_contents_title_entries(deck, collapsed = "Annex")
+#' }
+#' @export
+deck_contents_title_entries <- function(deck, collapsed = NULL,
+                                        dropped = NULL, standalone = NULL,
+                                        config = deck_config_get()) {
+  collapsed <- collapsed %||% config$contents_collapsed
+  dropped <- dropped %||% config$contents_dropped
+  standalone <- standalone %||% config$contents_standalone
+
+  pages <- deck_page_labels(deck, config)
+  alone <- is.na(pages$divider) & pages$title %in% standalone
+  starts <- which(!is.na(pages$divider) | alone)
+
+  if (length(starts) == 0) {
+    cli::cli_abort(c(
+      "No section divider in the deck to build a contents from.",
+      "i" = "Add the section pages first, or name pages in
+             {.arg standalone}."
+    ))
+  }
+
+  ends <- c(starts[-1] - 1L, nrow(pages))
+
+  purrr::pmap(list(starts, ends, seq_along(starts)), \(from, to, number) {
+    block <- dplyr::slice(pages, from:to)
+    label <- dplyr::coalesce(block$divider[1], block$title[1])
+
+    if (label %in% dropped) {
+      return(NULL)
+    }
+
+    runs <- block |>
+      dplyr::slice(-1) |>
+      dplyr::filter(is.na(.data$divider), !is.na(.data$title))
+
+    if (label %in% collapsed) {
+      runs <- dplyr::slice(runs, 0)
+    }
+
+    tibble::tibble(
+      kind = c("section", rep("run", nrow(runs))),
+      number = c(number, rep(NA_integer_, nrow(runs))),
+      label = c(label, runs$title),
+      page = c(block$page[1], runs$page)
+    )
+  }) |>
+    purrr::list_rbind()
+}
+
 # layout -----------------------------------------------------------------------
 
 # where one section block goes, given where the previous one ended
@@ -347,6 +422,197 @@ deck_contents_slide <- function(deck, entries, index = NULL, page = NULL,
   purrr::reduce(
     seq_len(nrow(rows)),
     \(deck, i) .contents_row(deck, dplyr::slice(rows, i), i, page, config),
+    .init = deck
+  )
+}
+
+# two balanced columns ---------------------------------------------------------
+
+# the top of each row of one column, and where the column ends
+#' @noRd
+.fill_column <- function(kinds, start, page) {
+  purrr::reduce(
+    kinds,
+    \(state, kind) {
+      is_section <- kind == "section"
+
+      # a section below the first row of its column takes a lead above it
+      lead <- if (is_section && state$end > start) page$section_lead else 0
+      top <- state$end + lead
+
+      # a little more room under each section heading
+      gap <- if (is_section) page$section_gap else 0
+
+      list(tops = c(state$tops, top), end = top + page$row_height + gap)
+    },
+    .init = list(tops = numeric(0), end = start)
+  )
+}
+
+# where each row sits in two columns, split at the section break that
+# leaves the taller column shortest
+#' @noRd
+.contents_two_columns <- function(entries, box, page) {
+  column_width <- (box$width - page$gap) / 2
+  start <- box$top + page$top_offset
+
+  # a section and the pages listed under it move as one block
+  block <- cumsum(entries$kind == "section")
+  rows_in_block <- dplyr::count(tibble::tibble(block = block), .data$block)$n
+
+  heights <- rows_in_block * page$row_height + page$section_lead +
+    page$section_gap
+
+  tallest <- purrr::map_dbl(seq_along(heights), \(k) {
+    max(sum(utils::head(heights, k)), sum(utils::tail(heights, -k)))
+  })
+
+  column <- dplyr::if_else(block <= which.min(tallest), 1L, 2L)
+
+  filled <- purrr::map(
+    1:2, \(k) .fill_column(entries$kind[column == k], start, page)
+  )
+
+  overflows <- purrr::map_lgl(filled, \(side) side$end > box$top + box$height)
+
+  if (any(overflows)) {
+    cli::cli_abort(c(
+      "The contents does not fit in two columns.",
+      "i" = "{nrow(entries)} entr{?y/ies} at {page$row_height} inches each."
+    ))
+  }
+
+  # built apart from the entries, whose own page column would mask the
+  # settings
+  position <- tibble::tibble(
+    left = box$left + (column - 1) * (column_width + page$gap),
+    width = column_width,
+    top = c(filled[[1]]$tops, filled[[2]]$tops)
+  )
+
+  dplyr::bind_cols(entries, position)
+}
+
+# one row of the filled contents: the label, then the page number, each a
+# text box linked to its page
+#' @noRd
+.contents_fill_row <- function(deck, row, i, page, section_weight, config) {
+  is_section <- row$kind == "section"
+  size <- if (is_section) config$contents_section_pt else config$contents_run_pt
+  indent <- if (is_section) 0 else page$indent
+  weight <- if (is_section) section_weight else "regular"
+  ink <- if (is_section) {
+    config$contents_section_colour
+  } else {
+    config$contents_run_colour
+  }
+
+  text <- officer::ftext(
+    row$label, deck_fp_text(size, ink, weight, config = config)
+  )
+
+  label <- if (is_section) {
+    number <- officer::ftext(
+      paste0(row$number, ". "),
+      deck_fp_text(
+        size, config$contents_number_colour, weight, config = config
+      )
+    )
+    list(number, text)
+  } else {
+    list(text)
+  }
+
+  page_number <- officer::ftext(
+    as.character(row$page), deck_fp_text(size, ink, weight, config = config)
+  )
+
+  deck |>
+    .contents_link(
+      paste0("contents_label_", i), label, row,
+      left = row$left + indent,
+      width = row$width - indent - page$number_width,
+      align = "left",
+      page = page
+    ) |>
+    .contents_link(
+      paste0("contents_page_", i), list(page_number), row,
+      left = row$left + row$width - page$number_width,
+      width = page$number_width,
+      align = "right",
+      page = page
+    )
+}
+
+#' Fill the Contents Page in Two Balanced Columns
+#'
+#' Draws the contents of a built deck as one linked line per entry, in
+#' two columns. A section keeps its pages with it, and the columns break
+#' at the section that leaves the taller column shortest. Section rows
+#' are set in the emphasis weight with their number in the
+#' `contents_number_colour`, and no band is drawn behind them. The rows
+#' fill a box given in inches, so the page needs no placeholder for
+#' them, and they replace any rows an earlier build drew.
+#'
+#' [deck_contents_slide()] is the contents for a deck listed by section
+#' and foot strip, in any number of columns.
+#'
+#' @param deck An `rpptx` object holding the built pages.
+#' @param entries A tibble of entries. Default `NULL`, the entries
+#'   [deck_contents_title_entries()] reads off `deck`.
+#' @param index Slide the contents sits on. Default `NULL`, the
+#'   `contents_page` setting of `config`.
+#' @param page Row spacing, a list with any of `gap`, `row_height`,
+#'   `section_lead`, `section_gap`, `top_offset`, `indent` and
+#'   `number_width`, in inches. Default `NULL`, the `contents_fill`
+#'   setting of `config`.
+#' @param box The box the contents fills, a list of `left`, `top`,
+#'   `width` and `height` in inches. Default `NULL`, the `content_box`
+#'   setting of `config`.
+#' @param collapsed,dropped,standalone Passed to
+#'   [deck_contents_title_entries()] when `entries` is `NULL`. Default
+#'   `NULL` for each, the matching `contents_*` setting of `config`.
+#' @param section_weight Weight of the section rows. Default
+#'   `"semibold"`.
+#' @param ... Settings of [deck_config()] to change for this call, as
+#'   `name = value`, such as `contents_section_pt` or
+#'   `contents_number_colour`.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force. The spacing and the box default to those
+#'   of the template the builder was first written for.
+#'
+#' @return The deck, with the contents drawn.
+#'
+#' @examples
+#' \dontrun{
+#' deck <- deck_contents_fill(deck, collapsed = "Annex")
+#' }
+#' @export
+deck_contents_fill <- function(deck, entries = NULL, index = NULL,
+                               page = NULL, box = NULL, collapsed = NULL,
+                               dropped = NULL, standalone = NULL,
+                               section_weight = "semibold", ...,
+                               config = deck_config_get()) {
+  config <- .call_config(config, ...)
+  page <- .nested(page, "contents_fill", config)
+
+  entries <- entries %||% deck_contents_title_entries(
+    deck, collapsed, dropped, standalone, config
+  )
+
+  rows <- .contents_two_columns(entries, box %||% config$content_box, page)
+
+  deck <- deck |>
+    officer::on_slide(index = index %||% config$contents_page) |>
+    .contents_clear()
+
+  purrr::reduce(
+    seq_len(nrow(rows)),
+    \(deck, i) {
+      .contents_fill_row(
+        deck, dplyr::slice(rows, i), i, page, section_weight, config
+      )
+    },
     .init = deck
   )
 }

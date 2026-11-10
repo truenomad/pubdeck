@@ -72,6 +72,20 @@ test_that("deck_place_in_box aligns an image inside its box", {
   expect_error(deck_place_in_box(fit, box, align = "middle"))
 })
 
+test_that("deck_box_location turns a box into a slide location", {
+  box <- list(left = 1, top = 2, width = 6, height = 3)
+  plain <- deck_box_location(box)
+  named <- deck_box_location(box, label = "trend")
+
+  expect_s3_class(plain, "location_manual")
+  expect_equal(
+    c(plain$left, plain$top, plain$width, plain$height), c(1, 2, 6, 3)
+  )
+  expect_equal(plain$ph_label, "")
+  expect_equal(named$ph_label, "trend")
+  expect_equal(named$left, 1)
+})
+
 test_that("deck_figure places native shapes near the drawn size", {
   path <- save_test_chart(withr::local_tempdir())
 

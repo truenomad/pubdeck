@@ -46,10 +46,21 @@ colour.
 
 `ggsave_pub()` needs a width and a height, so the file that is checked is
 the file that ships. It also keeps the drawn chart beside the PNG, which
-lets `deck_figure()` place it on a slide as editable shapes.
+lets `deck_figure()` place it on a slide as editable shapes. Pass
+`grob = FALSE`, or set `save_grob = FALSE`, to save the picture alone.
 
 ```r
 pubdeck::ggsave_pub(plot, "outputs/trend.png", width = 6, height = 3)
+```
+
+The theme reads its typeface, title position, plot margins and panel
+frame from the configuration, so a report sets them once:
+
+```r
+pubdeck::deck_config_set(pubdeck::deck_config(
+  theme_family = "Source Sans 3", theme_frame = TRUE,
+  theme_title_position = "panel"
+))
 ```
 
 `gtsave_pub()` renders a gt table at the house row padding.
@@ -123,6 +134,62 @@ print(deck, target = "outputs/weekly_review.pptx")
 
 A page that names no source stops the build, because a slide with no
 source line reads as though it needs none.
+
+## Page builders
+
+The page builders add whole pages and the blocks on them, for a deck that
+is assembled from boxes and not from the placeholders of a layout.
+`deck_cover_slide()` adds a cover with a title, a subtitle and an author.
+`deck_text_page()` adds a page with a title, a subtitle and the foot
+strip, and `deck_figure_page()` adds a page that carries one figure. A
+figure that has not been drawn yet is replaced by a panel naming its
+file, so a deck can be laid out before its figures exist.
+
+```r
+content <- pubdeck::deck_config_get()$content_box
+columns <- pubdeck::deck_columns(content, n = 2)
+
+deck <- deck |>
+  pubdeck::deck_text_page(
+    "Cases by week of onset", "Cases fell **after** the campaign",
+    section = "epi", sources = "polis"
+  ) |>
+  pubdeck::deck_bullets(
+    columns[[1]],
+    blocks = list(list(
+      heading = "What changed",
+      lines = c("Cases fell in **two** regions", "- by a third in the East")
+    ))
+  ) |>
+  pubdeck::deck_place_figure("outputs/trend.png", columns[[2]]) |>
+  pubdeck::deck_callout(
+    list(left = 0.5, top = 6, width = 6, height = 1),
+    label = "The question", text = "Where did the campaign reach?"
+  )
+```
+
+The blocks are `deck_bullets()`, `deck_panel()`, `deck_callout()`,
+`deck_rule_note()`, `deck_message()`, `deck_kpi()`, `deck_table()`,
+`deck_text_box()`, `deck_hrule()` and `deck_ellipse()`.
+`deck_place_figure()` places a saved figure as a picture and
+`deck_place_vector()` places a saved chart as native shapes.
+`deck_contents_title_entries()` lists a deck by divider and page title,
+and `deck_contents_fill()` draws that list in two balanced columns.
+
+Every size, colour, padding, shape label and box these builders use is a
+setting of `deck_config()`. The defaults describe the template the
+builders were first written for. A builder also takes any setting by
+name for one call:
+
+```r
+pubdeck::deck_panel(
+  deck, columns[[1]], "Heading", lines, panel_marker = "- "
+)
+```
+
+A footer that draws its section label in a box, a source line in regular
+weight and a divider with no number are settings as well:
+`foot_section_box`, `foot_source_weight` and `section_numbered`.
 
 ## Change settings for one call or one report
 

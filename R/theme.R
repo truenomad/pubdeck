@@ -7,6 +7,15 @@
 
 # themes -----------------------------------------------------------------------
 
+# a margin setting of t, r, b and l in points as a ggplot2 margin
+#' @noRd
+.as_margin <- function(margin) {
+  ggplot2::margin(
+    t = margin[["t"]], r = margin[["r"]], b = margin[["b"]],
+    l = margin[["l"]]
+  )
+}
+
 #' House Theme for Charts
 #'
 #' A minimal theme with a left-aligned, regular-weight title, a legend at
@@ -16,6 +25,21 @@
 #' @param base_size Base font size in points. Default `10`.
 #' @param grid Which major gridlines to draw: `"both"`, `"x"`, `"y"` or
 #'   `"none"`.
+#' @param frame Logical. Draw a border round the panel. Default `NULL`,
+#'   the `theme_frame` setting of `config`, which is `FALSE` unless set.
+#' @param family Typeface. Default `NULL`, the `theme_family` setting of
+#'   `config`, which is the device default unless set.
+#' @param title_position Where the title and subtitle start: `"plot"` or
+#'   `"panel"`. Default `NULL`, the `theme_title_position` setting of
+#'   `config`, which is `"plot"` unless set.
+#' @param plot_margin Margin around the plot, a list of `t`, `r`, `b` and
+#'   `l` in points. A list naming some of them changes those alone.
+#'   Default `NULL`, the `theme_plot_margin` setting of `config`.
+#' @param frame_colour,frame_linewidth Colour and width of the border
+#'   `frame` draws. Default `NULL`, the `theme_frame_colour` and
+#'   `theme_frame_linewidth` settings of `config`.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force.
 #'
 #' @return A ggplot2 theme.
 #'
@@ -24,11 +48,20 @@
 #'   ggplot2::geom_point(colour = pub_palette(1)) +
 #'   ggplot2::labs(title = "Fuel economy by weight") +
 #'   theme_pub(grid = "y")
+#'
+#' # a framed panel with the title starting at its edge
+#' theme_pub(frame = TRUE, title_position = "panel")
 #' @export
-theme_pub <- function(base_size = 10, grid = c("both", "x", "y", "none")) {
+theme_pub <- function(base_size = 10, grid = c("both", "x", "y", "none"),
+                      frame = NULL, family = NULL, title_position = NULL,
+                      plot_margin = NULL, frame_colour = NULL,
+                      frame_linewidth = NULL, config = deck_config_get()) {
   grid <- rlang::arg_match(grid)
+  frame <- frame %||% config$theme_frame
 
-  base <- ggplot2::theme_minimal(base_size = base_size) +
+  base <- ggplot2::theme_minimal(
+    base_size = base_size, base_family = family %||% config$theme_family
+  ) +
     ggplot2::theme(
       plot.title = ggplot2::element_text(
         size = .pub_title_size,
@@ -48,7 +81,7 @@ theme_pub <- function(base_size = 10, grid = c("both", "x", "y", "none")) {
         hjust = 0,
         margin = ggplot2::margin(t = 8)
       ),
-      plot.title.position = "plot",
+      plot.title.position = title_position %||% config$theme_title_position,
       plot.caption.position = "plot",
       axis.title.x = ggplot2::element_text(
         size = base_size, margin = ggplot2::margin(t = 13)
@@ -81,8 +114,21 @@ theme_pub <- function(base_size = 10, grid = c("both", "x", "y", "none")) {
       legend.text = ggplot2::element_text(size = base_size * 0.85),
       legend.key.height = ggplot2::unit(0.32, "cm"),
       legend.margin = ggplot2::margin(t = 2),
-      plot.margin = ggplot2::margin(t = 8, r = 10, b = 6, l = 8)
+      plot.margin = .as_margin(
+        .nested(plot_margin, "theme_plot_margin", config)
+      )
     )
+
+  if (frame) {
+    base <- base +
+      ggplot2::theme(
+        panel.border = ggplot2::element_rect(
+          colour = frame_colour %||% config$theme_frame_colour,
+          fill = NA,
+          linewidth = frame_linewidth %||% config$theme_frame_linewidth
+        )
+      )
+  }
 
   drop <- switch(
     grid,
@@ -135,16 +181,24 @@ theme_pub_clear <- function(transparent) {
 #'   `TRUE`.
 #' @param transparent Logical. Blank the painted backgrounds, as
 #'   [theme_pub_clear()] does. Default `FALSE`.
+#' @param ... Passed to [theme_pub()], such as `family` or
+#'   `title_position`.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force. Its `theme_family` and
+#'   `theme_title_position` settings apply, as in [theme_pub()].
 #'
 #' @return A ggplot2 theme.
 #'
 #' @examples
 #' theme_pub_map(frame = FALSE)
+#' theme_pub_map(family = "serif")
 #' @export
 theme_pub_map <- function(base_size = 10,
                           water = "#DCE7EF",
                           frame = TRUE,
-                          transparent = FALSE) {
+                          transparent = FALSE,
+                          ...,
+                          config = deck_config_get()) {
   panel_fill <- if (is.na(water)) {
     ggplot2::element_blank()
   } else {
@@ -157,7 +211,7 @@ theme_pub_map <- function(base_size = 10,
     ggplot2::element_blank()
   }
 
-  theme_pub(base_size = base_size, grid = "none") +
+  theme_pub(base_size = base_size, grid = "none", ..., config = config) +
     ggplot2::theme(
       # blanked per axis, not through the parent: a specific setting already
       # in the theme beats the generic one, and coord_sf() would print both
@@ -183,17 +237,25 @@ theme_pub_map <- function(base_size = 10,
 #' @param map Logical. Use the map theme. Default `FALSE`.
 #' @param base_size Base font size in points. Default `7.5`.
 #' @param ... Passed to [theme_pub()] when `map` is `FALSE`.
+#' @param plot_margin Margin around the panel's plot, a list of `t`, `r`,
+#'   `b` and `l` in points. A list naming some of them changes those
+#'   alone. Default `NULL`, the `theme_panel_margin` setting of `config`.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force.
 #'
 #' @return A ggplot2 theme.
 #'
 #' @examples
 #' theme_pub_panel(grid = "y")
+#' theme_pub_panel(plot_margin = list(t = 12, r = 16, b = 10, l = 12))
 #' @export
-theme_pub_panel <- function(map = FALSE, base_size = 7.5, ...) {
+theme_pub_panel <- function(map = FALSE, base_size = 7.5, ...,
+                            plot_margin = NULL,
+                            config = deck_config_get()) {
   base <- if (map) {
-    theme_pub_map(base_size = base_size)
+    theme_pub_map(base_size = base_size, config = config)
   } else {
-    theme_pub(base_size = base_size, ...)
+    theme_pub(base_size = base_size, ..., config = config)
   }
 
   base +
@@ -203,7 +265,9 @@ theme_pub_panel <- function(map = FALSE, base_size = 7.5, ...) {
       ),
       legend.key.height = ggplot2::unit(0.22, "cm"),
       legend.box.spacing = ggplot2::unit(3, "pt"),
-      plot.margin = ggplot2::margin(t = 4, r = 6, b = 2, l = 4)
+      plot.margin = .as_margin(
+        .nested(plot_margin, "theme_panel_margin", config)
+      )
     )
 }
 
@@ -217,14 +281,21 @@ theme_pub_panel <- function(map = FALSE, base_size = 7.5, ...) {
 #' @param angle Angle of the x axis labels in degrees. Default `45`.
 #' @param tick_size Font size of the x axis labels. Default is 85 per cent
 #'   of `base_size`.
+#' @param ... Passed to [theme_pub()], such as `frame`, `family` or
+#'   `plot_margin`.
+#' @param config A configuration built with [deck_config()]. Default is
+#'   the configuration in force. Its `theme_*` settings apply, as in
+#'   [theme_pub()].
 #'
 #' @return A ggplot2 theme.
 #'
 #' @examples
 #' theme_pub_cols(angle = 0)
+#' theme_pub_cols(frame = TRUE)
 #' @export
 theme_pub_cols <- function(base_size = 10, angle = 45,
-                           tick_size = base_size * 0.85) {
+                           tick_size = base_size * 0.85, ...,
+                           config = deck_config_get()) {
   # vjust = 1 stops ggplot reserving an upright label's bounding box, which
   # leaves dead space under the panel
   x_text <- if (angle == 0) {
@@ -236,7 +307,7 @@ theme_pub_cols <- function(base_size = 10, angle = 45,
     )
   }
 
-  theme_pub(base_size = base_size, grid = "y") +
+  theme_pub(base_size = base_size, grid = "y", ..., config = config) +
     ggplot2::theme(
       axis.text.x = x_text,
       axis.title.y = ggplot2::element_text(

@@ -157,3 +157,215 @@ test_that("deck_contents_slide replaces the rows of an earlier build", {
   expect_equal(count_rows(twice), count_rows(once))
   expect_length(twice, 8)
 })
+
+test_that("deck_contents_title_entries lists the pages under each divider", {
+  entries <- deck_contents_title_entries(
+    build_test_deck(), config = test_config()
+  )
+
+  expect_named(entries, c("kind", "number", "label", "page"))
+  expect_equal(entries$kind, rep(c("section", "run"), 3))
+  expect_equal(entries$number, c(1L, NA, 2L, NA, 3L, NA))
+  expect_equal(
+    entries$label,
+    c(
+      "Epidemiology", "Detections by week", "AFP surveillance",
+      "AFP cases by month", "Campaigns", "Coverage by round"
+    )
+  )
+  expect_equal(entries$page, 3:8)
+})
+
+test_that("deck_contents_title_entries collapses and drops sections", {
+  config <- test_config()
+  deck <- build_test_deck(config)
+
+  collapsed <- deck_contents_title_entries(
+    deck, collapsed = "Campaigns", config = config
+  )
+  dropped <- deck_contents_title_entries(
+    deck, dropped = "AFP surveillance", config = config
+  )
+
+  expect_equal(nrow(collapsed), 5)
+  expect_false("Coverage by round" %in% collapsed$label)
+  expect_equal(
+    dropped$label,
+    c("Epidemiology", "Detections by week", "Campaigns", "Coverage by round")
+  )
+  expect_equal(dropped$number, c(1L, NA, 3L, NA))
+})
+
+test_that("deck_contents_title_entries lists a page as its own section", {
+  config <- test_config()
+  entries <- deck_contents_title_entries(
+    build_test_deck(config), standalone = "Detections by week",
+    config = config
+  )
+
+  expect_equal(entries$kind[1:3], c("section", "section", "section"))
+  expect_equal(entries$label[2], "Detections by week")
+  expect_equal(entries$number[1:3], 1:3)
+  expect_equal(entries$page[2], 4L)
+})
+
+test_that("deck_contents_title_entries reads its lists from the config", {
+  config <- test_config(
+    contents_collapsed = "Epidemiology", contents_dropped = "Campaigns",
+    contents_standalone = "Contents"
+  )
+  entries <- deck_contents_title_entries(
+    build_test_deck(config), config = config
+  )
+
+  expect_equal(
+    entries$label,
+    c("Contents", "Epidemiology", "AFP surveillance", "AFP cases by month")
+  )
+  expect_equal(entries$page, c(2L, 3L, 5L, 6L))
+})
+
+test_that("deck_contents_title_entries stops on a deck with no divider", {
+  config <- test_config()
+  deck <- deck_open(config = config) |>
+    deck_title_slide(config = config)
+
+  expect_error(
+    deck_contents_title_entries(deck, config = config), "No section divider"
+  )
+})
+
+test_that("deck_contents_fill draws a linked line for every entry", {
+  config <- test_config()
+  deck <- build_test_deck(config) |>
+    deck_contents_fill(config = config)
+  shapes <- slide_shapes(deck)
+  labels <- shapes$ph_label
+
+  expect_length(deck, 8)
+  expect_equal(sum(startsWith(labels, "contents_label_")), 6)
+  expect_equal(sum(startsWith(labels, "contents_page_")), 6)
+  expect_false(any(startsWith(labels, "contents_band_")))
+  expect_true("1. Epidemiology" %in% shapes$text)
+  expect_true("Detections by week" %in% shapes$text)
+  expect_true(all(as.character(3:8) %in% shapes$text))
+
+  section <- shape_xml(deck, "contents_label_1")
+  run <- shape_xml(deck, "contents_label_2")
+
+  expect_match(run, "hlinkClick", fixed = TRUE)
+  expect_match(section, "A9552B", fixed = TRUE)
+  expect_match(section, "b=\"1\"", fixed = TRUE)
+  expect_match(run, "b=\"0\"", fixed = TRUE)
+})
+
+test_that("deck_contents_fill balances the sections over two columns", {
+  config <- test_config()
+  deck <- build_test_deck(config) |>
+    deck_contents_fill(config = config)
+  place <- function(i) shape_box(deck, paste0("contents_label_", i))
+
+  near <- function(actual, expected) {
+    expect_equal(actual, expected, tolerance = 1e-5)
+  }
+
+  near(c(place(1)$left, place(1)$top), c(0.41, 1.45))
+  near(c(place(2)$left, place(2)$top), c(0.71, 1.75))
+  near(c(place(3)$left, place(3)$top), c(6.965, 1.45))
+  near(place(5)$top, 2.11)
+  near(place(6)$top, 2.41)
+  near(shape_box(deck, "contents_page_1")$width, 0.45)
+})
+
+test_that("deck_contents_fill takes its entries, box and spacing as given", {
+  config <- test_config()
+  deck <- build_test_deck(config)
+  entries <- deck_contents_title_entries(
+    deck, collapsed = c("Epidemiology", "AFP surveillance"), config = config
+  )
+
+  deck <- deck_contents_fill(
+    deck, entries = entries,
+    box = list(left = 1, top = 2, width = 9, height = 4),
+    page = list(gap = 1, row_height = 0.3), config = config
+  )
+  labels <- slide_shapes(deck)$ph_label
+  place <- function(i) shape_box(deck, paste0("contents_label_", i))
+
+  expect_equal(sum(startsWith(labels, "contents_label_")), 4)
+  expect_equal(c(place(1)$left, place(1)$top), c(1, 2))
+  expect_equal(place(1)$height, 0.3, tolerance = 1e-5)
+  expect_equal(place(2)$top, 2 + 0.3 + 0.08 + 0.14, tolerance = 1e-5)
+  expect_equal(c(place(3)$left, place(3)$top), c(6, 2))
+})
+
+test_that("deck_contents_fill passes its lists on to the entries", {
+  config <- test_config()
+  deck <- build_test_deck(config) |>
+    deck_contents_fill(
+      collapsed = "Campaigns", dropped = "AFP surveillance",
+      standalone = "Contents", index = 1, config = config
+    )
+  shapes <- slide_shapes(deck)
+
+  expect_true(all(c("1. Contents", "2. Epidemiology") %in% shapes$text))
+  expect_true("4. Campaigns" %in% shapes$text)
+  expect_false("Coverage by round" %in% shapes$text)
+  expect_false("3. AFP surveillance" %in% shapes$text)
+  expect_true("Weekly review" %in% shapes$text)
+})
+
+test_that("deck_contents_fill replaces the rows of an earlier build", {
+  config <- test_config()
+  once <- deck_contents_fill(build_test_deck(config), config = config)
+  count_once <- sum(startsWith(slide_shapes(once)$ph_label, "contents_"))
+  twice <- deck_contents_fill(once, config = config)
+
+  expect_equal(
+    sum(startsWith(slide_shapes(twice)$ph_label, "contents_")), count_once
+  )
+})
+
+test_that("deck_contents_fill stops when the entries do not fit", {
+  config <- test_config()
+
+  expect_error(
+    deck_contents_fill(
+      build_test_deck(config),
+      box = list(left = 1, top = 2, width = 9, height = 0.3),
+      config = config
+    ),
+    "does not fit"
+  )
+})
+
+test_that("deck_contents_fill reads the config and settings for one call", {
+  config <- test_config(
+    contents_fill = list(indent = 1), contents_section_pt = 20,
+    contents_number_colour = "#101010", contents_section_colour = "#202020",
+    contents_run_colour = "#303030",
+    content_box = list(left = 2, top = 2, width = 10, height = 4)
+  )
+  deck <- build_test_deck(config) |>
+    deck_contents_fill(config = config)
+
+  expect_equal(shape_box(deck, "contents_label_1")$left, 2)
+  expect_equal(shape_box(deck, "contents_label_2")$left, 3)
+  expect_match(shape_xml(deck, "contents_label_1"), "sz=\"2000\"", fixed = TRUE)
+  expect_match(shape_xml(deck, "contents_label_1"), "101010", fixed = TRUE)
+  expect_match(shape_xml(deck, "contents_label_1"), "202020", fixed = TRUE)
+  expect_match(shape_xml(deck, "contents_label_2"), "303030", fixed = TRUE)
+
+  deck <- deck_contents_fill(
+    deck, section_weight = "regular", contents_run_pt = 8,
+    contents_page = 1L, config = config
+  )
+
+  expect_match(shape_xml(deck, "contents_label_1"), "b=\"0\"", fixed = TRUE)
+  expect_match(shape_xml(deck, "contents_label_2"), "sz=\"800\"", fixed = TRUE)
+  expect_true("Weekly review" %in% slide_shapes(deck)$text)
+  expect_error(
+    deck_contents_fill(deck, contents_rows = 2, config = config),
+    "Unknown setting"
+  )
+})

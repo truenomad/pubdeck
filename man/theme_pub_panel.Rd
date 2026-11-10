@@ -4,7 +4,13 @@
 \alias{theme_pub_panel}
 \title{House Theme for a Small Panel}
 \usage{
-theme_pub_panel(map = FALSE, base_size = 7.5, ...)
+theme_pub_panel(
+  map = FALSE,
+  base_size = 7.5,
+  ...,
+  plot_margin = NULL,
+  config = deck_config_get()
+)
 }
 \arguments{
 \item{map}{Logical. Use the map theme. Default \code{FALSE}.}
@@ -12,6 +18,13 @@ theme_pub_panel(map = FALSE, base_size = 7.5, ...)
 \item{base_size}{Base font size in points. Default \code{7.5}.}
 
 \item{...}{Passed to \code{\link[=theme_pub]{theme_pub()}} when \code{map} is \code{FALSE}.}
+
+\item{plot_margin}{Margin around the panel's plot, a list of \code{t}, \code{r},
+\code{b} and \code{l} in points. A list naming some of them changes those
+alone. Default \code{NULL}, the \code{theme_panel_margin} setting of \code{config}.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force.}
 }
 \value{
 A ggplot2 theme.
@@ -23,4 +36,5 @@ panel and room is left under it.
 }
 \examples{
 theme_pub_panel(grid = "y")
+theme_pub_panel(plot_margin = list(t = 12, r = 16, b = 10, l = 12))
 }

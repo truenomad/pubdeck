@@ -33,17 +33,21 @@
 #' the file that is checked is the file that ships. A PNG is compressed
 #' with [compress_pub()]. For a chart saved as PNG, the drawn chart is also
 #' kept beside the file with [save_pub_grob()], so [deck_figure()] can
-#' place it as native PowerPoint shapes.
+#' place it as native PowerPoint shapes. A report that places pictures
+#' only turns that off with `grob` or the `save_grob` setting.
 #'
 #' @param plot A ggplot, patchwork or grob.
 #' @param path File path. The format comes from the extension.
 #' @param width,height Size in inches. Both are required.
 #' @param dpi Resolution. Default `NULL`, the `map_dpi` setting of
 #'   `config` for a plot that draws simple features and the `dpi` setting
-#'   for any other.
+#'   for any other. Where `map_dpi` is `NULL`, a map takes `dpi` as well.
 #' @param bg Background colour. Default `"white"`.
 #' @param scale Passed to `ggplot2::ggsave()`. Default `1`.
 #' @param ... Further arguments passed to `ggplot2::ggsave()`.
+#' @param grob Logical. Keep the drawn chart beside a PNG. With `FALSE`
+#'   no grob file is written or removed. Default `NULL`, the `save_grob`
+#'   setting of `config`, which is `TRUE` unless set.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
 #'
@@ -55,9 +59,13 @@
 #'   theme_pub()
 #' path <- file.path(tempdir(), "fuel_economy.png")
 #' ggsave_pub(plot, path, width = 6, height = 3)
+#'
+#' # the picture alone
+#' ggsave_pub(plot, path, width = 6, height = 3, grob = FALSE)
 #' @export
 ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
-                       scale = 1, ..., config = deck_config_get()) {
+                       scale = 1, ..., grob = NULL,
+                       config = deck_config_get()) {
   if (missing(width) || missing(height)) {
     cli::cli_abort(c(
       "{.arg width} and {.arg height} are required.",
@@ -67,7 +75,8 @@ ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
   }
 
   is_map <- .plot_has_sf(plot)
-  dpi <- dpi %||% if (is_map) config$map_dpi else config$dpi
+  map_dpi <- config$map_dpi %||% config$dpi
+  dpi <- dpi %||% if (is_map) map_dpi else config$dpi
 
   fs::dir_create(fs::path_dir(path))
 
@@ -83,10 +92,13 @@ ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
   )
 
   compress_pub(path)
-  save_pub_grob(plot, path, width * scale, height * scale, is_map)
+
+  if (grob %||% config$save_grob) {
+    save_pub_grob(plot, path, width * scale, height * scale, is_map)
+  }
 
   cli::cli_alert_success(
-    "Wrote {.path {fs::path_rel(path)}} ({width}x{height} in)"
+    "Wrote {.path {(.path_rel(path, config))}} ({width}x{height} in)"
   )
 
   invisible(path)
@@ -251,7 +263,7 @@ gtsave_pub <- function(build, path, width, height, pad = NULL,
   aspect <- final$width / final$height
 
   cli::cli_alert_success(
-    "Wrote {.path {fs::path_rel(path)}}
+    "Wrote {.path {(.path_rel(path, config))}}
      (padding {pad}px, aspect {round(aspect, 2)})"
   )
 

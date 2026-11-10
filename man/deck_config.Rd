@@ -21,55 +21,138 @@ setting has a default, so a call names only what differs. Nothing in
 the package is fixed to one report: each builder takes a \code{config}
 argument, which defaults to the configuration in force set with
 \code{\link[=deck_config_set]{deck_config_set()}}, and most builders also take the settings they use
-most often as arguments of their own.
+most often as arguments of their own. The page builders also take any
+setting by name for one call, as in
+\code{deck_panel(deck, geom, heading, lines, panel_marker = "- ")}.
 }
 \details{
-Settings fall into five groups.
+Settings fall into seven groups.
 
 \strong{Template.} \code{template} is the path to the \code{.pptx} template and has no
 default. \code{master} names its slide master. \code{layouts} names the layouts
 used for the \code{cover}, a numbered \code{section} divider, a \code{subsection}
-divider and the \code{closing} page. \code{labels} names the placeholders for the
-\code{page_title}, the \code{section_title}, the \code{section} strip at the foot of a
-page and the \code{source} line the footer draws. \code{font} is the typeface.
+divider, the \code{closing} page and a \code{text_page} whose content is placed
+in boxes. \code{labels} names the placeholders and shapes the builders
+address: the \code{page_title}, the \code{page_subtitle}, the \code{section_title},
+the \code{section} strip at the foot of a page, the \code{source} line the footer
+draws, the \code{plot} box of a figure layout, and the \code{cover_title},
+\code{cover_subtitle} and \code{cover_author} lines of \code{\link[=deck_cover_slide]{deck_cover_slide()}}.
+\code{shape_labels} holds the label a block builder gives its shape when a
+call names none: \code{text_box}, \code{pending}, \code{panel}, \code{bullets}, \code{message},
+\code{callout}, \code{rule_note}, \code{ellipse}, \code{hrule}, \code{kpi} and \code{table}, with
+\code{panel_fill_suffix} added to a panel's label to name its fill. \code{font}
+is the typeface. \code{font_semibold} is the family of its semibold weight,
+and \code{use_semibold} says whether text in that weight uses the family or
+is set in bold. \code{path_root} is the folder a file path is written
+relative to in a pending panel or a message, and is the working
+directory when \code{NULL}.
 
 \strong{Wording.} \code{sections} is a data frame with one row per section and the
-columns \code{key}, \code{label} and \code{parent}, where \code{parent} is \code{NA} for a
-top-level section. \code{section_prefix} is the word before a section number.
-\code{title}, \code{country}, \code{cover_date_lead} and \code{cover_footer} fill the cover.
-\code{closing_title} and \code{contents_title} title those pages, \code{contents_page}
-is the slide the contents sits on, and \code{contents_skip} lists foot-strip
-labels the contents leaves out. \code{source_labels} is a named character
-vector of the data sources a page can cite, \code{source_clauses} holds named
+columns \code{key} and \code{label}. An optional \code{parent} column holds the key of
+the section a section sits inside, and \code{NA} for a top-level section.
+\code{section_prefix} is the word before a section number, and
+\code{section_numbered} says whether a top-level divider carries a number.
+\code{title}, \code{country}, \code{cover_date_lead} and \code{cover_footer} fill the cover
+\code{\link[=deck_title_slide]{deck_title_slide()}} draws, and \code{title}, \code{cover_subtitle} and
+\code{cover_author} fill the one \code{\link[=deck_cover_slide]{deck_cover_slide()}} draws. \code{closing_title}
+and \code{contents_title} title those pages, \code{contents_page} is the slide
+the contents sits on, and \code{contents_skip} lists foot-strip labels the
+contents leaves out. \code{contents_collapsed}, \code{contents_dropped} and
+\code{contents_standalone} steer \code{\link[=deck_contents_title_entries]{deck_contents_title_entries()}}: sections
+listed without their pages, sections left out, and page titles listed
+as sections of their own. \code{source_labels} is a named character vector
+of the data sources a page can cite, \code{source_clauses} holds named
 clauses about how a page was built, and \code{source_lead} opens the line.
+\code{pending_lead} opens the text of a panel that stands in for a figure
+not yet drawn.
 
 \strong{Cover and page text.} \code{cover_title_pt}, \code{cover_date_pt},
 \code{cover_footer_pt} and \code{cover_band_colour} style the cover.
 \code{cover_title_box}, \code{cover_date_box} and \code{cover_footer_box} place its
 lines, each a list of \code{left}, \code{top}, \code{width} and \code{height} in inches.
-\code{subtitle_pt}, \code{subtitle_colour}, \code{page_subtitle_pt} and
-\code{page_subtitle_colour} style subtitles. \code{foot_source_box},
-\code{foot_source_pt}, \code{foot_source_colour} and \code{foot_source_max_chars} place
-and style the source line.
+\code{cover_subtitle_pt}, \code{cover_subtitle_colour}, \code{cover_subtitle_box},
+\code{cover_author_pt}, \code{cover_author_colour} and \code{cover_author_box} style
+and place the subtitle and author of \code{\link[=deck_cover_slide]{deck_cover_slide()}}.
+\code{subtitle_pt} and \code{subtitle_colour} style a line from
+\code{\link[=deck_subtitle]{deck_subtitle()}}. \code{page_title_pt}, \code{page_title_colour},
+\code{page_title_weight} and \code{page_title_box} style and place the title a
+page builder writes, and \code{page_subtitle_pt}, \code{page_subtitle_colour},
+\code{page_subtitle_weight} and \code{page_subtitle_box} its subtitle.
+\code{page_title_max_chars}, \code{page_subtitle_max_chars}, \code{heading_fill}, the
+share of its box a heading may fill, and \code{box_inset}, the text inset
+on each side of a box in inches, decide when \code{\link[=deck_check_heading]{deck_check_heading()}}
+reports a heading that may wrap. \code{emphasis_mark} brackets text to
+emphasise. \code{foot_source_box}, \code{foot_source_pt}, \code{foot_source_colour},
+\code{foot_source_weight} and \code{foot_source_max_chars} place and style the
+source line. \code{foot_section_box} is \code{NULL} where the section label goes
+into the template's placeholder; given a box, the label is drawn there
+at \code{foot_section_pt}, \code{foot_section_colour} and \code{foot_section_weight}.
+A weight is \code{"regular"}, \code{"semibold"} or \code{"bold"}.
+
+\strong{Page builders.} \code{body_colour}, \code{heading_colour}, \code{accent_colour},
+\code{strong_colour} and \code{muted_colour} are the text colours the builders
+share: body text, headings, labels and rules, the sentence a callout
+carries, and secondary lines. \code{content_box} is the area between the
+subtitle and the foot strip. \code{plot_top_min} is the line no figure
+starts above, in inches, and \code{column_gap} the gap \code{\link[=deck_columns]{deck_columns()}}
+leaves. \code{pending_fill} fills a pending panel, set at \code{pending_pt} in a
+box and at \code{pending_page_pt} on a figure page. \code{text_box_fill},
+\code{text_box_colour} and \code{text_box_pt} style \code{\link[=deck_text_box]{deck_text_box()}}.
+\code{panel_fill}, \code{panel_pt}, \code{panel_marker} and \code{panel_padding} style
+\code{\link[=deck_panel]{deck_panel()}}. \code{heading_step_pt} is how much larger a heading is than
+its text, and \code{plain_line_pattern} is a regular expression for a line
+that takes no bullet. \code{bullet_pt}, \code{bullet_space_after},
+\code{bullet_group_gap} and \code{bullet_block_gap}, the space between blocks as
+a share of the text size, style \code{\link[=deck_bullets]{deck_bullets()}}. \code{bullet_mark} marks
+a line for a native bullet until the slide is written, \code{bullet_char}
+is the bullet drawn and \code{bullet_hang} its hang in inches. \code{sub_prefix}
+opens a sub-bullet in the input, and \code{sub_mark}, \code{sub_char},
+\code{sub_indent}, \code{sub_hang} and \code{sub_pt_drop} set its mark, bullet,
+indent, hang and drop in size. \code{message_pt} sizes \code{\link[=deck_message]{deck_message()}}.
+\code{callout_fill}, \code{callout_label_pt}, \code{callout_text_pt} and
+\code{callout_padding} style \code{\link[=deck_callout]{deck_callout()}}, and \code{rule_label_pt},
+\code{rule_text_pt}, \code{rule_width} and \code{rule_padding} style
+\code{\link[=deck_rule_note]{deck_rule_note()}}. \code{hrule_weight} and \code{hrule_geometry}, a list of
+\code{row_height}, \code{box_height} and \code{pt}, draw \code{\link[=deck_hrule]{deck_hrule()}}.
+\code{ellipse_lwd} and \code{ellipse_geometry}, a list of \code{radius} and \code{points},
+draw \code{\link[=deck_ellipse]{deck_ellipse()}}. \code{kpi_label_pt}, \code{kpi_note_pt}, \code{kpi_row_pt},
+\code{kpi_change_pt} and \code{kpi_padding} style \code{\link[=deck_kpi]{deck_kpi()}}.
+\code{slide_table_pt}, \code{slide_table_rule_colour}, \code{slide_table_rule_width},
+\code{slide_table_head_rule_width} and \code{slide_table_padding} style
+\code{\link[=deck_table]{deck_table()}}. A padding is a list of \code{left}, \code{right}, \code{top} and
+\code{bottom} in points, and \code{callout_padding} also holds \code{text_bottom},
+the space under the sentence.
 
 \strong{Contents and explainer boxes.} \code{contents_slide} is a list holding the
 \code{layout}, the \code{box} placeholder, \code{n_cols}, and the spacing fields \code{gap},
 \code{row_height}, \code{section_lead}, \code{section_pad}, \code{indent} and \code{number_width}
-in inches. The \verb{contents_*} settings style its rows. The \verb{note_*}
-settings style explainer boxes, and \code{page_bg} is the page background.
+in inches. \code{contents_fill} holds the spacing \code{\link[=deck_contents_fill]{deck_contents_fill()}}
+uses: \code{gap}, \code{row_height}, \code{section_lead}, \code{section_gap}, \code{top_offset},
+\code{indent} and \code{number_width}. The other \verb{contents_*} settings style the
+rows of both. The \verb{note_*} settings style explainer boxes, and
+\code{page_bg} is the page background.
 
 \strong{Tables and figures.} \code{table_header}, \code{table_row_padding}, \code{table_bar},
 \code{table_bar_track} and \code{spark_min_span} style tables. \code{dpi} and \code{map_dpi}
-are the resolutions for charts and maps. \code{vector_max_bytes} and
-\code{vector_scale_tolerance} decide when a chart is placed as native shapes.
+are the resolutions for charts and maps; a \code{map_dpi} of \code{NULL} saves
+maps at \code{dpi}. \code{save_grob} says whether \code{\link[=ggsave_pub]{ggsave_pub()}} keeps the drawn
+chart beside its PNG. \code{vector_max_bytes} and \code{vector_scale_tolerance}
+decide when a chart is placed as native shapes.
+
+\strong{Theme.} \code{theme_family} is the typeface of \code{\link[=theme_pub]{theme_pub()}}, and the
+device default when empty. \code{theme_title_position} is \code{"plot"} or
+\code{"panel"}. \code{theme_plot_margin} and \code{theme_panel_margin} are the plot
+margins of \code{\link[=theme_pub]{theme_pub()}} and \code{\link[=theme_pub_panel]{theme_pub_panel()}}, each a list of \code{t},
+\code{r}, \code{b} and \code{l} in points. \code{theme_frame} draws a border round the
+panel, in \code{theme_frame_colour} at \code{theme_frame_linewidth}.
 
 A nested setting such as \code{contents_slide} or \code{layouts} is merged into
 its default, so one field can be changed alone.
 
-The default layout names, placeholder labels and boxes describe the
-template the package was first written for. A report with its own
-template sets its own, and \code{\link[=deck_check_template]{deck_check_template()}} confirms the two
-agree.
+The default layout names, placeholder labels, boxes, sizes and colours
+describe the templates the builders were first written for. A report
+with its own template sets its own, and \code{\link[=deck_check_template]{deck_check_template()}}
+confirms the layouts and placeholders agree.
 }
 \examples{
 config <- deck_config(

@@ -13,6 +13,7 @@ ggsave_pub(
   bg = "white",
   scale = 1,
   ...,
+  grob = NULL,
   config = deck_config_get()
 )
 }
@@ -25,13 +26,17 @@ ggsave_pub(
 
 \item{dpi}{Resolution. Default \code{NULL}, the \code{map_dpi} setting of
 \code{config} for a plot that draws simple features and the \code{dpi} setting
-for any other.}
+for any other. Where \code{map_dpi} is \code{NULL}, a map takes \code{dpi} as well.}
 
 \item{bg}{Background colour. Default \code{"white"}.}
 
 \item{scale}{Passed to \code{ggplot2::ggsave()}. Default \code{1}.}
 
 \item{...}{Further arguments passed to \code{ggplot2::ggsave()}.}
+
+\item{grob}{Logical. Keep the drawn chart beside a PNG. With \code{FALSE}
+no grob file is written or removed. Default \code{NULL}, the \code{save_grob}
+setting of \code{config}, which is \code{TRUE} unless set.}
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
@@ -44,7 +49,8 @@ Saves a plot with \code{ggplot2::ggsave()} at a stated width and height, so
 the file that is checked is the file that ships. A PNG is compressed
 with \code{\link[=compress_pub]{compress_pub()}}. For a chart saved as PNG, the drawn chart is also
 kept beside the file with \code{\link[=save_pub_grob]{save_pub_grob()}}, so \code{\link[=deck_figure]{deck_figure()}} can
-place it as native PowerPoint shapes.
+place it as native PowerPoint shapes. A report that places pictures
+only turns that off with \code{grob} or the \code{save_grob} setting.
 }
 \examples{
 plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
@@ -52,4 +58,7 @@ plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
   theme_pub()
 path <- file.path(tempdir(), "fuel_economy.png")
 ggsave_pub(plot, path, width = 6, height = 3)
+
+# the picture alone
+ggsave_pub(plot, path, width = 6, height = 3, grob = FALSE)
 }

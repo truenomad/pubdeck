@@ -128,14 +128,26 @@ deck_figure <- function(path, width, height, config = deck_config_get()) {
     return(officer::external_img(path, width = width, height = height))
   }
 
+  .load_namespaces(saved$namespaces)
+
+  .grob_dml(saved$grob)
+}
+
+# loads the namespaces a saved grob draws through
+#' @noRd
+.load_namespaces <- function(namespaces) {
   purrr::walk(
-    setdiff(saved$namespaces, loadedNamespaces()),
+    setdiff(namespaces, loadedNamespaces()),
     \(ns) suppressPackageStartupMessages(requireNamespace(ns, quietly = TRUE))
   )
+}
 
-  # dml draws later, elsewhere, so the grob travels inside a bare ggplot
+# a grob as native shapes; dml draws later, elsewhere, so the grob travels
+# inside a bare ggplot that draws it over the whole device
+#' @noRd
+.grob_dml <- function(grob) {
   holder <- ggplot2::ggplot() +
-    ggplot2::annotation_custom(saved$grob) +
+    ggplot2::annotation_custom(grob) +
     ggplot2::theme_void() +
     ggplot2::theme(plot.margin = ggplot2::margin(0, 0, 0, 0))
 
@@ -143,6 +155,27 @@ deck_figure <- function(path, width, height, config = deck_config_get()) {
 }
 
 # boxes ------------------------------------------------------------------------
+
+#' Slide Location of a Box
+#'
+#' Turns a box in inches into the location 'officer' places a shape at.
+#' With a label, the shape is named, so the slide can be read back and the
+#' shape found, replaced or removed.
+#'
+#' @param box A list of `left`, `top`, `width` and `height`, in inches.
+#' @param label Label given to the shape placed there. Default `NULL`,
+#'   none.
+#'
+#' @return An `officer::ph_location()` object.
+#'
+#' @examples
+#' deck_box_location(
+#'   list(left = 1, top = 1, width = 6, height = 3), label = "trend"
+#' )
+#' @export
+deck_box_location <- function(box, label = NULL) {
+  .box_location(box, label)
+}
 
 #' Adjust a Box
 #'

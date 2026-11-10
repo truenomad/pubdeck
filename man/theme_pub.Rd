@@ -4,13 +4,44 @@
 \alias{theme_pub}
 \title{House Theme for Charts}
 \usage{
-theme_pub(base_size = 10, grid = c("both", "x", "y", "none"))
+theme_pub(
+  base_size = 10,
+  grid = c("both", "x", "y", "none"),
+  frame = NULL,
+  family = NULL,
+  title_position = NULL,
+  plot_margin = NULL,
+  frame_colour = NULL,
+  frame_linewidth = NULL,
+  config = deck_config_get()
+)
 }
 \arguments{
 \item{base_size}{Base font size in points. Default \code{10}.}
 
 \item{grid}{Which major gridlines to draw: \code{"both"}, \code{"x"}, \code{"y"} or
 \code{"none"}.}
+
+\item{frame}{Logical. Draw a border round the panel. Default \code{NULL},
+the \code{theme_frame} setting of \code{config}, which is \code{FALSE} unless set.}
+
+\item{family}{Typeface. Default \code{NULL}, the \code{theme_family} setting of
+\code{config}, which is the device default unless set.}
+
+\item{title_position}{Where the title and subtitle start: \code{"plot"} or
+\code{"panel"}. Default \code{NULL}, the \code{theme_title_position} setting of
+\code{config}, which is \code{"plot"} unless set.}
+
+\item{plot_margin}{Margin around the plot, a list of \code{t}, \code{r}, \code{b} and
+\code{l} in points. A list naming some of them changes those alone.
+Default \code{NULL}, the \code{theme_plot_margin} setting of \code{config}.}
+
+\item{frame_colour, frame_linewidth}{Colour and width of the border
+\code{frame} draws. Default \code{NULL}, the \code{theme_frame_colour} and
+\code{theme_frame_linewidth} settings of \code{config}.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force.}
 }
 \value{
 A ggplot2 theme.
@@ -25,4 +56,7 @@ ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
   ggplot2::geom_point(colour = pub_palette(1)) +
   ggplot2::labs(title = "Fuel economy by weight") +
   theme_pub(grid = "y")
+
+# a framed panel with the title starting at its edge
+theme_pub(frame = TRUE, title_position = "panel")
 }

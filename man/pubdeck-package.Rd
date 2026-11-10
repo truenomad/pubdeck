@@ -6,7 +6,17 @@
 \alias{pubdeck-package}
 \title{pubdeck: House Figure Theme and PowerPoint Deck Builder for Routine Reports}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Provides a 'ggplot2' theme, colour palettes, figure and table savers, and helpers that assemble a 'PowerPoint' deck from a template with 'officer'. Slide geometry is read from the template, and the styling and wording a deck uses are held in one configuration object, so several reporting pipelines can share one look and one set of page builders.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/truenomad/pubdeck}
+  \item Report bugs at \url{https://github.com/truenomad/pubdeck/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Mohamed A. Yusuf \email{mohamedayusuf87@gmail.com} (\href{https://orcid.org/0000-0002-9339-4613}{ORCID})

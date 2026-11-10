@@ -8,7 +8,9 @@ theme_pub_map(
   base_size = 10,
   water = "#DCE7EF",
   frame = TRUE,
-  transparent = FALSE
+  transparent = FALSE,
+  ...,
+  config = deck_config_get()
 )
 }
 \arguments{
@@ -21,6 +23,13 @@ theme_pub_map(
 
 \item{transparent}{Logical. Blank the painted backgrounds, as
 \code{\link[=theme_pub_clear]{theme_pub_clear()}} does. Default \code{FALSE}.}
+
+\item{...}{Passed to \code{\link[=theme_pub]{theme_pub()}}, such as \code{family} or
+\code{title_position}.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force. Its \code{theme_family} and
+\code{theme_title_position} settings apply, as in \code{\link[=theme_pub]{theme_pub()}}.}
 }
 \value{
 A ggplot2 theme.
@@ -31,4 +40,5 @@ map drawn from simple features, where those carry nothing.
 }
 \examples{
 theme_pub_map(frame = FALSE)
+theme_pub_map(family = "serif")
 }

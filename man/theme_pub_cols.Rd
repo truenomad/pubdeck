@@ -4,7 +4,13 @@
 \alias{theme_pub_cols}
 \title{House Theme for Columns over Rounds or Dates}
 \usage{
-theme_pub_cols(base_size = 10, angle = 45, tick_size = base_size * 0.85)
+theme_pub_cols(
+  base_size = 10,
+  angle = 45,
+  tick_size = base_size * 0.85,
+  ...,
+  config = deck_config_get()
+)
 }
 \arguments{
 \item{base_size}{Base font size in points. Default \code{10}.}
@@ -13,6 +19,13 @@ theme_pub_cols(base_size = 10, angle = 45, tick_size = base_size * 0.85)
 
 \item{tick_size}{Font size of the x axis labels. Default is 85 per cent
 of \code{base_size}.}
+
+\item{...}{Passed to \code{\link[=theme_pub]{theme_pub()}}, such as \code{frame}, \code{family} or
+\code{plot_margin}.}
+
+\item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
+the configuration in force. Its \verb{theme_*} settings apply, as in
+\code{\link[=theme_pub]{theme_pub()}}.}
 }
 \value{
 A ggplot2 theme.
@@ -24,4 +37,5 @@ x axis carries a round identifier or a date.
 }
 \examples{
 theme_pub_cols(angle = 0)
+theme_pub_cols(frame = TRUE)
 }

@@ -11,7 +11,11 @@ deck_page_footer(
   sources = NULL,
   as_of = NULL,
   notes = NULL,
-  config = deck_config_get()
+  config = deck_config_get(),
+  framing = FALSE,
+  section_box = NULL,
+  source_weight = NULL,
+  ...
 )
 }
 \arguments{
@@ -23,7 +27,7 @@ deck_page_footer(
 of \code{section} in the configuration.}
 
 \item{sources}{Character vector of source keys, passed to
-\code{\link[=deck_source_line]{deck_source_line()}}. Required.}
+\code{\link[=deck_source_line]{deck_source_line()}}. Required unless \code{framing} is \code{TRUE}.}
 
 \item{as_of}{Text appended to the source line. Default \code{NULL}.}
 
@@ -31,6 +35,22 @@ of \code{section} in the configuration.}
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
+
+\item{framing}{Logical. The page carries no finding, so it may name no
+source. Default \code{FALSE}.}
+
+\item{section_box}{Box the section label is drawn in, a list of
+\code{left}, \code{top}, \code{width} and \code{height} in inches. Default \code{NULL}, the
+\code{foot_section_box} setting of \code{config}. Where that is \code{NULL} as
+well, the label goes into the placeholder.}
+
+\item{source_weight}{Weight of the source line: \code{"regular"},
+\code{"semibold"} or \code{"bold"}. Default \code{NULL}, the \code{foot_source_weight}
+setting of \code{config}, which is \code{"bold"} unless set.}
+
+\item{...}{Settings of \code{\link[=deck_config]{deck_config()}} to change for this call, as
+\code{name = value}, such as \code{foot_section_pt}, \code{foot_section_colour} or
+\code{foot_source_box}.}
 }
 \value{
 The deck, with the foot strip filled.
@@ -39,12 +59,24 @@ The deck, with the foot strip filled.
 Fills the strip at the foot of a page: the section on the left, and on
 the right what the page is built from and when. A page that names no
 source stops the build, because a slide with no source line reads as
-though it needs none.
+though it needs none. A page that carries no finding, such as one that
+frames the pages after it, is marked with \code{framing} and takes the
+section label alone.
+}
+\details{
+The section label goes into the template's placeholder. Where
+\code{section_box} or the \code{foot_section_box} setting gives a box, the label
+is drawn there as a shape of its own, for a template whose layouts
+reserve no placeholder for it. A section key the configuration does
+not hold then stops the build.
 }
 \examples{
 \dontrun{
 deck <- deck_page_footer(
   deck, "campaigns", sources = "polis", as_of = "Last updated: 9 March"
 )
+
+# a page that frames the section and cites nothing
+deck <- deck_page_footer(deck, "campaigns", framing = TRUE)
 }
 }

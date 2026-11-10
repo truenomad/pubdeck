@@ -4,7 +4,13 @@
 \alias{deck_section_slide}
 \title{Add a Section Divider}
 \usage{
-deck_section_slide(deck, section, config = deck_config_get())
+deck_section_slide(
+  deck,
+  section,
+  config = deck_config_get(),
+  numbered = NULL,
+  layout = NULL
+)
 }
 \arguments{
 \item{deck}{An \code{rpptx} object.}
@@ -13,6 +19,14 @@ deck_section_slide(deck, section, config = deck_config_get())
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
+
+\item{numbered}{Logical. Number a top-level divider. Default \code{NULL},
+the \code{section_numbered} setting of \code{config}, which is \code{TRUE} unless
+set.}
+
+\item{layout}{Name of the layout. Default \code{NULL}, the \code{section} layout
+of \code{config} for a numbered divider and the \code{subsection} layout for
+one without a number.}
 }
 \value{
 The deck, with the divider added.
@@ -20,10 +34,12 @@ The deck, with the divider added.
 \description{
 Adds the divider page that opens a section. A top-level section takes
 the numbered layout and a number read off the deck. A section inside
-another takes the subsection layout, with a title and no number.
+another takes the subsection layout, with a title and no number, and so
+does every section of a deck whose dividers carry no number.
 }
 \examples{
 \dontrun{
 deck <- deck_section_slide(deck, "campaigns")
+deck <- deck_section_slide(deck, "campaigns", numbered = FALSE)
 }
 }

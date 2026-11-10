@@ -62,6 +62,77 @@ test_that("ggsave_pub saves a map at the map resolution with no grob", {
   expect_false(file.exists(file.path(dir, "map.qs2")))
 })
 
+test_that("ggsave_pub keeps no grob when told not to", {
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  path <- file.path(dir, "chart.png")
+  left_beside <- file.path(dir, "chart.qs2")
+  writeLines("kept", left_beside)
+
+  suppressMessages(
+    ggsave_pub(plot, path, width = 4, height = 2, grob = FALSE)
+  )
+
+  expect_true(file.exists(path))
+  expect_equal(readLines(left_beside), "kept")
+})
+
+test_that("ggsave_pub takes the grob setting from the configuration", {
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  pictures_only <- deck_config(save_grob = FALSE)
+  path <- file.path(dir, "chart.png")
+
+  suppressMessages(
+    ggsave_pub(plot, path, width = 4, height = 2, config = pictures_only)
+  )
+
+  expect_false(file.exists(file.path(dir, "chart.qs2")))
+
+  suppressMessages(ggsave_pub(
+    plot, path, width = 4, height = 2, grob = TRUE, config = pictures_only
+  ))
+
+  expect_true(file.exists(file.path(dir, "chart.qs2")))
+})
+
+test_that("ggsave_pub saves a map at the chart resolution without a map one", {
+  skip_if_not_installed("sf")
+
+  dir <- withr::local_tempdir()
+  points <- sf::st_sf(
+    id = 1:2,
+    geometry = sf::st_sfc(sf::st_point(c(0, 0)), sf::st_point(c(1, 1)))
+  )
+  map <- ggplot2::ggplot(points) +
+    ggplot2::geom_sf() +
+    theme_pub_map()
+  path <- file.path(dir, "map.png")
+
+  suppressMessages(ggsave_pub(
+    map, path, width = 4, height = 2,
+    config = deck_config(dpi = 100, map_dpi = NULL)
+  ))
+
+  expect_equal(magick::image_info(magick::image_read(path))$width, 400)
+})
+
+test_that("ggsave_pub reports the path from the root it is given", {
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+
+  expect_message(
+    ggsave_pub(
+      plot, file.path(dir, "plots", "chart.png"), width = 4, height = 2,
+      config = deck_config(path_root = dir)
+    ),
+    "plots/chart.png"
+  )
+})
+
 test_that("save_pub_grob removes a stale grob when none is kept", {
   dir <- withr::local_tempdir()
   path <- save_test_chart(dir)
