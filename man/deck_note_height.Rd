@@ -4,7 +4,7 @@
 \alias{deck_note_height}
 \title{Height of an Explainer Box at a Given Width}
 \usage{
-deck_note_height(block, width, config = deck_config_get())
+deck_note_height(block, width, config = deck_config_get(), measure = NULL)
 }
 \arguments{
 \item{block}{A flextable from \code{\link[=deck_note_block]{deck_note_block()}}.}
@@ -13,17 +13,26 @@ deck_note_height(block, width, config = deck_config_get())
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
+
+\item{measure}{How the text is measured. \code{"typeface"} wraps each row in
+the \code{font} setting of \code{config} with 'textshaping'. \code{"device"} adds up
+the widths of its words in the sans face of the graphics device, at
+the point size cut to a whole number. Default \code{NULL}, the
+\code{note_measure} setting of \code{config}, which is \code{"typeface"} unless set.}
 }
 \value{
 Height in inches.
 }
 \description{
 Estimates how tall a box from \code{\link[=deck_note_block]{deck_note_block()}} draws once its text
-wraps inside a box of a given width. The deck typeface is measured as
-the graphics device's sans face.
+wraps inside a box of a given width. Each row is wrapped in the deck
+typeface, the \code{font} setting, with its lead phrase in bold. Where the
+typeface is not installed the text is measured in a substitute, which
+is reported once in a session.
 }
 \examples{
 notes <- data.frame(lead = "Coverage", body = "is the share reached.")
 block <- deck_note_block(notes = notes)
 deck_note_height(block, width = 3)
+deck_note_height(block, width = 3, measure = "device")
 }

@@ -395,3 +395,65 @@ test_that("deck_place_vector keeps a large grob that has no picture", {
 
   expect_true("alone" %in% slide_shapes(deck)$ph_label)
 })
+
+test_that("alternative text reaches the picture on the slide", {
+  config <- test_config()
+  figure <- test_png(withr::local_tempdir())
+  box <- test_box(top = 2, width = 4, height = 4)
+  description <- "descr=\"Cases by week of onset\""
+
+  placed <- blank_page(config) |>
+    deck_place_figure(
+      figure, box, alt = "Cases by week of onset", config = config
+    )
+  page <- deck_open(config = config) |>
+    deck_figure_page(
+      "two_plots", "Cases", "By week", figure, "epi", "polis",
+      alt = "Cases by week of onset", config = config
+    )
+
+  expect_match(written_slides(placed), description, fixed = TRUE)
+  expect_match(written_slides(page), description, fixed = TRUE)
+})
+
+test_that("a picture placed with no alternative text is written as before", {
+  config <- test_config()
+  figure <- test_png(withr::local_tempdir())
+  box <- test_box(top = 2, width = 4, height = 4)
+  fit <- deck_fit_image(figure, box$width, box$height)
+
+  placed <- blank_page(config) |>
+    deck_place_figure(figure, box, config = config)
+  by_hand <- blank_page(config) |>
+    officer::ph_with(
+      value = officer::external_img(
+        figure, width = fit$width, height = fit$height
+      ),
+      location = deck_place_in_box(fit, box)
+    )
+
+  expect_identical(written_slides(placed), written_slides(by_hand))
+  expect_match(written_slides(placed), "descr=\"\"", fixed = TRUE)
+})
+
+test_that("deck_place_vector passes alternative text to its PNG", {
+  local_null_device()
+  dir <- withr::local_tempdir()
+  path <- save_test_chart(dir)
+  grob_path <- file.path(dir, "chart.qs2")
+  config <- test_config(vector_max_bytes = 10)
+  box <- test_box(top = 2, width = 4, height = 4)
+
+  picture <- blank_page(config) |>
+    deck_place_vector(
+      grob_path, box, "trend", alt = "Fuel economy by weight",
+      config = config
+    )
+  shapes <- blank_page() |>
+    deck_place_vector(grob_path, box, "trend", alt = "Fuel economy")
+
+  expect_match(
+    written_slides(picture), "descr=\"Fuel economy by weight\"", fixed = TRUE
+  )
+  expect_false(grepl("Fuel economy", written_slides(shapes), fixed = TRUE))
+})

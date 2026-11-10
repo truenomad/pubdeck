@@ -40,7 +40,8 @@ saved image.
 \description{
 Renders a gt table at a stated row padding and compresses the file. gt
 sizes a table to its content, so a short table stays short and a slide
-can place it at the top of its box.
+can place it at the top of its box. The picture is taken with the
+'webshot2' package, which must be installed.
 }
 \examples{
 \dontrun{

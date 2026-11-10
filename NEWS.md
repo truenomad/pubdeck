@@ -1,3 +1,32 @@
+# pubdeck 0.3.0
+
+* `deck_note_height()` wraps each row of an explainer box in the deck
+  typeface, the `font` setting, and counts its lines, so the overflow
+  warning of `deck_place_note()` no longer comes late. It gains `measure`,
+  with the `note_measure` setting: `"typeface"` is the new measure and
+  `"device"` the earlier one, which measured in the sans face of the
+  graphics device at the point size cut to a whole number.
+* `deck_place_note()` takes any setting of `deck_config()` by name for
+  one call, such as `note_measure`.
+* A deck typeface that is not installed on the machine building the deck
+  is reported once in a session, because explainer boxes are then
+  measured in a substitute.
+* `ggsave_pub()` draws a PNG with `ragg::agg_png()`, so the picture does
+  not depend on which devices the machine has. It gains `png_device`,
+  with the `png_device` setting: `"default"` leaves the device to
+  'ggplot2'. A `device` passed in the call is used as given, and `type`
+  and `antialias` are dropped when ragg is named, as 'ggplot2' drops them
+  when it picks ragg itself.
+* `gtsave_pub()` checks that 'webshot2', which saves the PNG, is
+  installed, and says so where it is not.
+* `deck_figure()`, `deck_place_figure()`, `deck_figure_page()` and
+  `deck_place_vector()` gain `alt`, the alternative text of a picture. It
+  does not apply to a chart placed as native shapes.
+* 'ragg' and 'textshaping' are now imported. 'webshot2' and 'vdiffr' are
+  suggested, 'vdiffr' for the visual snapshot tests of the theme family.
+* With the defaults, every slide and saved figure is the same as in
+  0.2.0. The new measure changes only when `deck_place_note()` warns.
+
 # pubdeck 0.2.0
 
 * New page builders, ported from the deck helpers of the measles-campaign

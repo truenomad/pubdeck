@@ -174,3 +174,103 @@ test_that("trim_png cuts the margin down to the border", {
 
   expect_equal(c(trimmed$width, trimmed$height), c(30, 30))
 })
+
+test_that("a PNG is drawn with ragg unless the call or a setting says so", {
+  expect_identical(.ggsave_extras("chart.png", "ragg")$device, ragg::agg_png)
+  expect_identical(.ggsave_extras("CHART.PNG", "ragg")$device, ragg::agg_png)
+  expect_identical(.ggsave_extras("chart.png", "default"), list())
+  expect_identical(.ggsave_extras("chart.pdf", "ragg"), list())
+  expect_identical(
+    .ggsave_extras("chart.png", "ragg", device = "png", limitsize = FALSE),
+    list(device = "png", limitsize = FALSE)
+  )
+  expect_identical(
+    .ggsave_extras("chart.png", "ragg", limitsize = FALSE),
+    list(limitsize = FALSE, device = ragg::agg_png)
+  )
+})
+
+test_that("arguments ragg does not take are dropped when ragg is named", {
+  expect_identical(
+    .ggsave_extras(
+      "chart.png", "ragg", type = "cairo", antialias = "none",
+      limitsize = FALSE
+    ),
+    list(limitsize = FALSE, device = ragg::agg_png)
+  )
+  expect_identical(
+    .ggsave_extras("chart.png", "default", type = "cairo"),
+    list(type = "cairo")
+  )
+
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  path <- file.path(dir, "chart.png")
+
+  expect_no_error(suppressMessages(ggsave_pub(
+    plot, path, width = 4, height = 2, grob = FALSE, type = "cairo"
+  )))
+  expect_true(file.exists(path))
+})
+
+test_that("ggsave_pub writes the same picture with either PNG device", {
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point() +
+    theme_pub()
+  named <- file.path(dir, "named.png")
+  left <- file.path(dir, "left.png")
+
+  suppressMessages({
+    ggsave_pub(plot, named, width = 4, height = 2, grob = FALSE)
+    ggsave_pub(
+      plot, left, width = 4, height = 2, grob = FALSE, png_device = "default"
+    )
+  })
+
+  expect_equal(deck_config()$png_device, "ragg")
+  expect_identical(image_pixels(named), image_pixels(left))
+})
+
+test_that("ggsave_pub takes its PNG device three ways", {
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  path <- file.path(dir, "chart.png")
+  unknown <- deck_config(png_device = "cairo")
+  save <- \(...) {
+    suppressMessages(
+      ggsave_pub(plot, path, width = 4, height = 2, grob = FALSE, ...)
+    )
+  }
+
+  expect_error(save(png_device = "cairo"), "png_device")
+  expect_error(save(config = unknown), "png_device")
+  expect_error(with_deck_config(unknown, save()), "png_device")
+  expect_false(file.exists(path))
+  expect_no_error(save(png_device = "default", config = unknown))
+  expect_true(file.exists(path))
+})
+
+test_that("ggsave_pub uses a device named in the call as it is given", {
+  dir <- withr::local_tempdir()
+  plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+    ggplot2::geom_point()
+  path <- file.path(dir, "chart.png")
+  opened <- 0
+  counted <- function(filename, width, height, units, res, ...) {
+    opened <<- opened + 1
+    ragg::agg_png(
+      filename, width = width, height = height, units = units, res = res,
+      ...
+    )
+  }
+
+  suppressMessages(ggsave_pub(
+    plot, path, width = 4, height = 2, grob = FALSE, device = counted
+  ))
+
+  expect_equal(opened, 1)
+  expect_equal(magick::image_info(magick::image_read(path))$width, 1200)
+})

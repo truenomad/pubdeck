@@ -135,7 +135,8 @@ deck_cover_slide <- function(deck, title = NULL, subtitle = NULL,
 
 # a saved figure fitted into a box, or a panel naming the file still to draw
 #' @noRd
-.place_figure <- function(deck, path, geom, label, pending_pt, config) {
+.place_figure <- function(deck, path, geom, label, pending_pt, config,
+                          alt = NULL) {
   if (!fs::file_exists(path)) {
     return(deck_text_box(
       deck, geom,
@@ -149,9 +150,7 @@ deck_cover_slide <- function(deck, title = NULL, subtitle = NULL,
 
   officer::ph_with(
     deck,
-    value = officer::external_img(
-      path, width = fit$width, height = fit$height
-    ),
+    value = .external_img(path, fit$width, fit$height, alt),
     location = deck_place_in_box(fit, geom)
   )
 }
@@ -176,6 +175,8 @@ deck_cover_slide <- function(deck, title = NULL, subtitle = NULL,
 #' @param as_of Text appended to the source line. Default `NULL`.
 #' @param framing Logical. The page carries no finding, so it may name no
 #'   source. Default `FALSE`.
+#' @param alt Alternative text for the figure, which a screen reader reads
+#'   out. Default `NULL`, none.
 #' @param ... Settings of [deck_config()] to change for this call, as
 #'   `name = value`, such as `page_title_box` or `pending_page_pt`.
 #' @param config A configuration built with [deck_config()]. Default is
@@ -191,13 +192,14 @@ deck_cover_slide <- function(deck, title = NULL, subtitle = NULL,
 #'   title = "Cases by week of onset",
 #'   subtitle = "Cases fell **after** the campaign",
 #'   figure = "outputs/trend.png",
-#'   section = "epi", sources = "polis"
+#'   section = "epi", sources = "polis",
+#'   alt = "Line chart of cases by week of onset"
 #' )
 #' }
 #' @export
 deck_figure_page <- function(deck, layout, title, subtitle, figure, section,
                              sources = NULL, as_of = NULL, framing = FALSE,
-                             ..., config = deck_config_get()) {
+                             alt = NULL, ..., config = deck_config_get()) {
   config <- .call_config(config, ...)
 
   deck <- deck |>
@@ -210,7 +212,7 @@ deck_figure_page <- function(deck, layout, title, subtitle, figure, section,
   deck |>
     .place_figure(
       figure, box, config$shape_labels$pending, config$pending_page_pt,
-      config
+      config, alt
     ) |>
     deck_page_footer(
       section, sources = sources, as_of = as_of, config = config,
@@ -343,6 +345,8 @@ deck_columns <- function(box, n, gap = NULL, config = deck_config_get()) {
 #'   [deck_below_subtitle()].
 #' @param label Label given to the pending panel. Default `NULL`, the
 #'   `pending` field of the `shape_labels` setting.
+#' @param alt Alternative text for the figure, which a screen reader reads
+#'   out. Default `NULL`, none.
 #' @param ... Settings of [deck_config()] to change for this call, as
 #'   `name = value`, such as `pending_pt` or `plot_top_min`.
 #' @param config A configuration built with [deck_config()]. Default is
@@ -354,19 +358,20 @@ deck_columns <- function(box, n, gap = NULL, config = deck_config_get()) {
 #' \dontrun{
 #' deck <- deck_place_figure(
 #'   deck, "outputs/trend.png",
-#'   list(left = 0.5, top = 1.7, width = 6, height = 4)
+#'   list(left = 0.5, top = 1.7, width = 6, height = 4),
+#'   alt = "Line chart of cases by week of onset"
 #' )
 #' }
 #' @export
-deck_place_figure <- function(deck, path, geom, label = NULL, ...,
-                              config = deck_config_get()) {
+deck_place_figure <- function(deck, path, geom, label = NULL, alt = NULL,
+                              ..., config = deck_config_get()) {
   config <- .call_config(config, ...)
 
   .place_figure(
     deck, path,
     deck_below_subtitle(geom, config = config),
     label %||% config$shape_labels$pending,
-    config$pending_pt, config
+    config$pending_pt, config, alt
   )
 }
 
@@ -404,6 +409,9 @@ deck_place_figure <- function(deck, path, geom, label = NULL, ...,
 #'   `height` in inches. It is moved below the subtitle with
 #'   [deck_below_subtitle()].
 #' @param label Label given to the new shape.
+#' @param alt Alternative text for the PNG placed when the grob is too
+#'   large, which a screen reader reads out. Default `NULL`, none. It does
+#'   not apply to a chart placed as native shapes.
 #' @param ... Settings of [deck_config()] to change for this call, as
 #'   `name = value`, such as `vector_max_bytes`.
 #' @param config A configuration built with [deck_config()]. Default is
@@ -419,7 +427,7 @@ deck_place_figure <- function(deck, path, geom, label = NULL, ...,
 #' )
 #' }
 #' @export
-deck_place_vector <- function(deck, path, geom, label, ...,
+deck_place_vector <- function(deck, path, geom, label, alt = NULL, ...,
                               config = deck_config_get()) {
   config <- .call_config(config, ...)
   geom <- deck_below_subtitle(geom, config = config)
@@ -432,7 +440,7 @@ deck_place_vector <- function(deck, path, geom, label, ...,
 
     return(officer::ph_with(
       deck,
-      value = officer::external_img(png_path, fit$width, fit$height),
+      value = .external_img(png_path, fit$width, fit$height, alt),
       location = deck_place_in_box(fit, geom)
     ))
   }

@@ -131,3 +131,22 @@ test_that("deck_cover_box adds a labelled panel to the slide", {
 
   expect_true("cover_note" %in% shapes$ph_label)
 })
+
+test_that("deck_figure passes alternative text to the picture", {
+  dir <- withr::local_tempdir()
+  path <- save_test_chart(dir)
+
+  described <- deck_figure(
+    path, width = 3, height = 1.5, alt = "Fuel economy by weight"
+  )
+
+  expect_s3_class(described, "external_img")
+  expect_equal(attr(described, "alt"), "Fuel economy by weight")
+  expect_identical(
+    deck_figure(path, width = 3, height = 1.5),
+    officer::external_img(path, width = 3, height = 1.5)
+  )
+  expect_s3_class(
+    deck_figure(path, width = 6, height = 3, alt = "Fuel economy"), "dml"
+  )
+})

@@ -9,6 +9,7 @@ deck_place_figure(
   path,
   geom,
   label = NULL,
+  alt = NULL,
   ...,
   config = deck_config_get()
 )
@@ -24,6 +25,9 @@ deck_place_figure(
 
 \item{label}{Label given to the pending panel. Default \code{NULL}, the
 \code{pending} field of the \code{shape_labels} setting.}
+
+\item{alt}{Alternative text for the figure, which a screen reader reads
+out. Default \code{NULL}, none.}
 
 \item{...}{Settings of \code{\link[=deck_config]{deck_config()}} to change for this call, as
 \code{name = value}, such as \code{pending_pt} or \code{plot_top_min}.}
@@ -43,7 +47,8 @@ in, so a page can be laid out before its figures are drawn.
 \dontrun{
 deck <- deck_place_figure(
   deck, "outputs/trend.png",
-  list(left = 0.5, top = 1.7, width = 6, height = 4)
+  list(left = 0.5, top = 1.7, width = 6, height = 4),
+  alt = "Line chart of cases by week of onset"
 )
 }
 }

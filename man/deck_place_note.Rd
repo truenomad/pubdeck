@@ -4,7 +4,7 @@
 \alias{deck_place_note}
 \title{Place an Explainer Box on a Page}
 \usage{
-deck_place_note(deck, block, geom, config = deck_config_get())
+deck_place_note(deck, block, geom, config = deck_config_get(), ...)
 }
 \arguments{
 \item{deck}{An \code{rpptx} object, on the slide to change.}
@@ -16,6 +16,9 @@ deck_place_note(deck, block, geom, config = deck_config_get())
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
+
+\item{...}{Settings of \code{\link[=deck_config]{deck_config()}} to change for this call, as
+\code{name = value}, such as \code{note_measure}.}
 }
 \value{
 The deck, with the box placed.

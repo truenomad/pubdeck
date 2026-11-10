@@ -130,13 +130,18 @@ in inches. \code{contents_fill} holds the spacing \code{\link[=deck_contents_fil
 uses: \code{gap}, \code{row_height}, \code{section_lead}, \code{section_gap}, \code{top_offset},
 \code{indent} and \code{number_width}. The other \verb{contents_*} settings style the
 rows of both. The \verb{note_*} settings style explainer boxes, and
-\code{page_bg} is the page background.
+\code{page_bg} is the page background. \code{note_measure} is how
+\code{\link[=deck_note_height]{deck_note_height()}} measures the text of a box: \code{"typeface"} wraps it
+in \code{font}, and \code{"device"} measures it in the sans face of the graphics
+device.
 
 \strong{Tables and figures.} \code{table_header}, \code{table_row_padding}, \code{table_bar},
 \code{table_bar_track} and \code{spark_min_span} style tables. \code{dpi} and \code{map_dpi}
 are the resolutions for charts and maps; a \code{map_dpi} of \code{NULL} saves
 maps at \code{dpi}. \code{save_grob} says whether \code{\link[=ggsave_pub]{ggsave_pub()}} keeps the drawn
-chart beside its PNG. \code{vector_max_bytes} and \code{vector_scale_tolerance}
+chart beside its PNG. \code{png_device} is the device \code{\link[=ggsave_pub]{ggsave_pub()}} draws a
+PNG with: \code{"ragg"} names \code{ragg::agg_png()}, and \code{"default"} leaves the
+choice to 'ggplot2'. \code{vector_max_bytes} and \code{vector_scale_tolerance}
 decide when a chart is placed as native shapes.
 
 \strong{Theme.} \code{theme_family} is the typeface of \code{\link[=theme_pub]{theme_pub()}}, and the

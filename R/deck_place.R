@@ -90,6 +90,17 @@ deck_stacked_height <- function(path, width, column_height, max_share) {
   min(deck_fit_image(path, width, Inf)$height, column_height * max_share)
 }
 
+# a picture for a slide; alternative text is passed on only when it is
+# given, so a picture without it is the one officer builds by default
+#' @noRd
+.external_img <- function(path, width, height, alt = NULL) {
+  if (is.null(alt)) {
+    return(officer::external_img(path, width = width, height = height))
+  }
+
+  officer::external_img(path, width = width, height = height, alt = alt)
+}
+
 #' Place a Chart as Native Shapes Where Possible
 #'
 #' Returns the object to place on a slide for a saved figure. When
@@ -103,15 +114,23 @@ deck_stacked_height <- function(path, width, column_height, max_share) {
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force. Its `vector_max_bytes` and
 #'   `vector_scale_tolerance` settings decide when shapes are used.
+#' @param alt Alternative text for the picture, which a screen reader
+#'   reads out. Default `NULL`, none. It does not apply to a chart placed
+#'   as native shapes.
 #'
 #' @return An `rvg::dml()` object or an `officer::external_img()`.
 #'
 #' @examples
 #' \dontrun{
 #' deck_figure("outputs/trend.png", width = 6, height = 3)
+#' deck_figure(
+#'   "outputs/trend.png", width = 6, height = 3,
+#'   alt = "Line chart of cases by week of onset"
+#' )
 #' }
 #' @export
-deck_figure <- function(path, width, height, config = deck_config_get()) {
+deck_figure <- function(path, width, height, config = deck_config_get(),
+                        alt = NULL) {
   grob_path <- fs::path_ext_set(path, "qs2")
 
   usable <- fs::file_exists(grob_path) &&
@@ -125,7 +144,7 @@ deck_figure <- function(path, width, height, config = deck_config_get()) {
     abs(width / saved$width - 1) > config$vector_scale_tolerance
 
   if (off_scale) {
-    return(officer::external_img(path, width = width, height = height))
+    return(.external_img(path, width, height, alt))
   }
 
   .load_namespaces(saved$namespaces)

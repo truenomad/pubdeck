@@ -14,6 +14,7 @@ ggsave_pub(
   scale = 1,
   ...,
   grob = NULL,
+  png_device = NULL,
   config = deck_config_get()
 )
 }
@@ -32,11 +33,17 @@ for any other. Where \code{map_dpi} is \code{NULL}, a map takes \code{dpi} as we
 
 \item{scale}{Passed to \code{ggplot2::ggsave()}. Default \code{1}.}
 
-\item{...}{Further arguments passed to \code{ggplot2::ggsave()}.}
+\item{...}{Further arguments passed to \code{ggplot2::ggsave()}. A \code{device}
+named here is used as given.}
 
 \item{grob}{Logical. Keep the drawn chart beside a PNG. With \code{FALSE}
 no grob file is written or removed. Default \code{NULL}, the \code{save_grob}
 setting of \code{config}, which is \code{TRUE} unless set.}
+
+\item{png_device}{The device a PNG is drawn with. \code{"ragg"} names
+\code{ragg::agg_png()}. \code{"default"} leaves the choice to 'ggplot2'.
+Default \code{NULL}, the \code{png_device} setting of \code{config}, which is
+\code{"ragg"} unless set.}
 
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force.}
@@ -46,11 +53,13 @@ The path, invisibly.
 }
 \description{
 Saves a plot with \code{ggplot2::ggsave()} at a stated width and height, so
-the file that is checked is the file that ships. A PNG is compressed
-with \code{\link[=compress_pub]{compress_pub()}}. For a chart saved as PNG, the drawn chart is also
-kept beside the file with \code{\link[=save_pub_grob]{save_pub_grob()}}, so \code{\link[=deck_figure]{deck_figure()}} can
-place it as native PowerPoint shapes. A report that places pictures
-only turns that off with \code{grob} or the \code{save_grob} setting.
+the file that is checked is the file that ships. A PNG is drawn with
+\code{ragg::agg_png()}, so the picture does not depend on which devices the
+machine has, and is compressed with \code{\link[=compress_pub]{compress_pub()}}. For a chart saved
+as PNG, the drawn chart is also kept beside the file with
+\code{\link[=save_pub_grob]{save_pub_grob()}}, so \code{\link[=deck_figure]{deck_figure()}} can place it as native PowerPoint
+shapes. A report that places pictures only turns that off with \code{grob}
+or the \code{save_grob} setting.
 }
 \examples{
 plot <- ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +

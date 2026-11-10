@@ -173,3 +173,45 @@ save_test_chart <- function(dir, width = 6, height = 3) {
 
   path
 }
+
+# the XML of each slide of a deck, as it is written to a file
+written_slides <- function(deck, dir = withr::local_tempdir()) {
+  path <- file.path(dir, "deck.pptx")
+  print(deck, target = path)
+  utils::unzip(path, exdir = dir)
+
+  file.path(dir, "ppt", "slides") |>
+    list.files(pattern = "[.]xml$", full.names = TRUE) |>
+    sort() |>
+    purrr::map_chr(
+      \(file) paste(readLines(file, warn = FALSE), collapse = "\n")
+    )
+}
+
+# the record of typefaces already looked up, emptied for the length of a
+# test
+local_typeface_record <- function(env = parent.frame()) {
+  installed <- .state$typeface_installed
+  reported <- .state$typeface_reported
+  .state$typeface_installed <- NULL
+  .state$typeface_reported <- NULL
+
+  withr::defer(
+    {
+      .state$typeface_installed <- installed
+      .state$typeface_reported <- reported
+    },
+    envir = env
+  )
+}
+
+# width in inches of one line of regular text, measured with systemfonts
+# at a resolution where rounding to whole pixels is too small to matter
+line_width <- function(text, font, pt, res = 7200) {
+  systemfonts::string_width(text, family = font, size = pt, res = res) / res
+}
+
+# the pixels of an image file
+image_pixels <- function(path) {
+  as.integer(magick::image_data(magick::image_read(path)))
+}

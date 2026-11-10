@@ -225,6 +225,7 @@
     note_bullet = "\u25aa",
     note_subbullet = "\u00b7",
     note_indent = 14,
+    note_measure = "typeface",
     page_bg = "#FFFFFF",
     # tables
     table_header = "#2E4053",
@@ -236,6 +237,7 @@
     dpi = 300,
     map_dpi = 200,
     save_grob = TRUE,
+    png_device = "ragg",
     vector_max_bytes = 5e5,
     vector_scale_tolerance = 0.1,
     # theme
@@ -387,13 +389,18 @@
 #' uses: `gap`, `row_height`, `section_lead`, `section_gap`, `top_offset`,
 #' `indent` and `number_width`. The other `contents_*` settings style the
 #' rows of both. The `note_*` settings style explainer boxes, and
-#' `page_bg` is the page background.
+#' `page_bg` is the page background. `note_measure` is how
+#' [deck_note_height()] measures the text of a box: `"typeface"` wraps it
+#' in `font`, and `"device"` measures it in the sans face of the graphics
+#' device.
 #'
 #' **Tables and figures.** `table_header`, `table_row_padding`, `table_bar`,
 #' `table_bar_track` and `spark_min_span` style tables. `dpi` and `map_dpi`
 #' are the resolutions for charts and maps; a `map_dpi` of `NULL` saves
 #' maps at `dpi`. `save_grob` says whether [ggsave_pub()] keeps the drawn
-#' chart beside its PNG. `vector_max_bytes` and `vector_scale_tolerance`
+#' chart beside its PNG. `png_device` is the device [ggsave_pub()] draws a
+#' PNG with: `"ragg"` names `ragg::agg_png()`, and `"default"` leaves the
+#' choice to 'ggplot2'. `vector_max_bytes` and `vector_scale_tolerance`
 #' decide when a chart is placed as native shapes.
 #'
 #' **Theme.** `theme_family` is the typeface of [theme_pub()], and the

@@ -203,12 +203,10 @@ deck_note_block <- function(heading = NULL, notes, pt = NULL, bullet = FALSE,
   wrapped$lines
 }
 
-# height in inches of one row once its text wraps; the lead phrase is bold
-# and so runs wider than the body at the same size
+# lines a row takes on the graphics device, each word measured in its sans
+# face with the lead in bold
 #' @noRd
-.note_row_height <- function(lead, body, pt, indent_pt, width, config) {
-  available <- width - (2 * config$note_pad_x_pt + indent_pt) / 72
-
+.device_lines <- function(lead, body, pt, available) {
   bold <- .split_words(lead)
   plain <- .split_words(body)
   words <- c(bold, plain)
@@ -223,19 +221,129 @@ deck_note_block <- function(heading = NULL, notes, pt = NULL, bullet = FALSE,
     }
   )
 
-  .count_lines(widths, available) * pt * config$note_line_spacing / 72
+  .count_lines(widths, available)
+}
+
+# the glyphs that move the pen when the runs of a row are set as one
+# paragraph in a typeface; a width in inches turns on wrapping
+#' @noRd
+.shape_row <- function(runs, pt, font, max_width = NA) {
+  shaped <- textshaping::shape_text(
+    runs$text, id = rep(1L, nrow(runs)), family = font,
+    weight = runs$weight, size = pt, max_width = max_width
+  )
+
+  dplyr::filter(shaped$shape, .data$advance > 0)
+}
+
+# lines a row takes when its lead, in bold, and its body wrap as one
+# paragraph in a typeface
+#' @noRd
+.typeface_lines <- function(lead, body, pt, available, font) {
+  gap <- if (nzchar(lead) && nzchar(body)) " " else ""
+
+  runs <- tibble::tibble(
+    text = c(paste0(lead, gap), body),
+    weight = c("bold", "normal")
+  ) |>
+    dplyr::filter(nzchar(.data$text))
+
+  if (nrow(runs) == 0) {
+    return(1)
+  }
+
+  glyphs <- .shape_row(runs, pt, font)
+
+  if (nrow(glyphs) == 0) {
+    return(1)
+  }
+
+  # a shaped glyph is sized in points
+  one_line <- sum(glyphs$advance) / 72
+  widest_glyph <- max(glyphs$advance) / 72
+
+  if (available >= one_line) {
+    return(1)
+  }
+
+  # the shaper cannot wrap in a box narrower than a glyph, where each
+  # glyph takes a line of its own
+  if (available <= widest_glyph) {
+    return(nrow(glyphs))
+  }
+
+  # a line is a baseline; a mark set over its base sits off the baseline
+  # and moves no pen, so it is left out of the count
+  wrapped <- .shape_row(runs, pt, font, max_width = available)
+
+  dplyr::n_distinct(wrapped$y_offset)
+}
+
+# reports, once in a session, a typeface that is not installed, since its
+# text is then measured in whatever face stands in for it
+#' @noRd
+.check_typeface <- function(font) {
+  if (font %in% .state$typeface_installed) {
+    return(invisible(TRUE))
+  }
+
+  if (font %in% .state$typeface_reported) {
+    return(invisible(FALSE))
+  }
+
+  families <- c(
+    systemfonts::system_fonts()$family,
+    systemfonts::registry_fonts()$family
+  )
+
+  if (tolower(font) %in% tolower(families)) {
+    .state$typeface_installed <- c(.state$typeface_installed, font)
+    return(invisible(TRUE))
+  }
+
+  .state$typeface_reported <- c(.state$typeface_reported, font)
+
+  cli::cli_alert_warning(
+    "Typeface {.val {font}} is not installed; explainer boxes are measured
+     in a substitute"
+  )
+
+  invisible(FALSE)
+}
+
+# height in inches of one row once its text wraps; the lead phrase is bold
+# and so runs wider than the body at the same size
+#' @noRd
+.note_row_height <- function(lead, body, pt, indent_pt, width, measure,
+                             config) {
+  available <- width - (2 * config$note_pad_x_pt + indent_pt) / 72
+
+  lines <- if (measure == "device") {
+    .device_lines(lead, body, pt, available)
+  } else {
+    .typeface_lines(lead, body, pt, available, config$font)
+  }
+
+  lines * pt * config$note_line_spacing / 72
 }
 
 #' Height of an Explainer Box at a Given Width
 #'
 #' Estimates how tall a box from [deck_note_block()] draws once its text
-#' wraps inside a box of a given width. The deck typeface is measured as
-#' the graphics device's sans face.
+#' wraps inside a box of a given width. Each row is wrapped in the deck
+#' typeface, the `font` setting, with its lead phrase in bold. Where the
+#' typeface is not installed the text is measured in a substitute, which
+#' is reported once in a session.
 #'
 #' @param block A flextable from [deck_note_block()].
 #' @param width Width of the box, in inches.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
+#' @param measure How the text is measured. `"typeface"` wraps each row in
+#'   the `font` setting of `config` with 'textshaping'. `"device"` adds up
+#'   the widths of its words in the sans face of the graphics device, at
+#'   the point size cut to a whole number. Default `NULL`, the
+#'   `note_measure` setting of `config`, which is `"typeface"` unless set.
 #'
 #' @return Height in inches.
 #'
@@ -243,21 +351,32 @@ deck_note_block <- function(heading = NULL, notes, pt = NULL, bullet = FALSE,
 #' notes <- data.frame(lead = "Coverage", body = "is the share reached.")
 #' block <- deck_note_block(notes = notes)
 #' deck_note_height(block, width = 3)
+#' deck_note_height(block, width = 3, measure = "device")
 #' @export
-deck_note_height <- function(block, width, config = deck_config_get()) {
+deck_note_height <- function(block, width, config = deck_config_get(),
+                             measure = NULL) {
   rows <- attr(block, "deck_note_rows")
 
   if (is.null(rows)) {
     return(flextable::flextable_dim(block)$heights)
   }
 
-  grDevices::pdf(NULL)
-  on.exit(grDevices::dev.off(), add = TRUE)
+  measure <- rlang::arg_match0(
+    measure %||% config$note_measure, c("typeface", "device"),
+    arg_nm = "measure"
+  )
+
+  if (measure == "device") {
+    grDevices::pdf(NULL)
+    on.exit(grDevices::dev.off(), add = TRUE)
+  } else {
+    .check_typeface(config$font)
+  }
 
   drawn <- purrr::pmap_dbl(
     list(rows$lead, rows$body, rows$pt, rows$indent_pt),
     \(lead, body, pt, indent_pt) {
-      .note_row_height(lead, body, pt, indent_pt, width, config)
+      .note_row_height(lead, body, pt, indent_pt, width, measure, config)
     }
   )
 
@@ -278,6 +397,8 @@ deck_note_height <- function(block, width, config = deck_config_get()) {
 #'   `height` in inches.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
+#' @param ... Settings of [deck_config()] to change for this call, as
+#'   `name = value`, such as `note_measure`.
 #'
 #' @return The deck, with the box placed.
 #'
@@ -288,7 +409,10 @@ deck_note_height <- function(block, width, config = deck_config_get()) {
 #' )
 #' }
 #' @export
-deck_place_note <- function(deck, block, geom, config = deck_config_get()) {
+deck_place_note <- function(deck, block, geom, config = deck_config_get(),
+                            ...) {
+  config <- .call_config(config, ...)
+
   fitted <- block |>
     flextable::width(width = geom$width) |>
     flextable::set_table_properties(layout = "fixed")

@@ -27,14 +27,36 @@
   )
 }
 
+# the further arguments passed to ggsave(); a png is drawn with ragg
+# unless the call names a device of its own
+#' @noRd
+.ggsave_extras <- function(path, png_device, ...) {
+  extras <- rlang::list2(...)
+
+  names_device <- "device" %in% names(extras)
+  is_png <- tolower(fs::path_ext(path)) == "png"
+
+  if (png_device != "ragg" || names_device || !is_png) {
+    return(extras)
+  }
+
+  # ggplot2 drops these two when it picks ragg itself; a named device would
+  # refuse them
+  kept <- purrr::discard_at(extras, c("type", "antialias"))
+
+  c(kept, list(device = ragg::agg_png))
+}
+
 #' Save a Figure at an Explicit Size
 #'
 #' Saves a plot with `ggplot2::ggsave()` at a stated width and height, so
-#' the file that is checked is the file that ships. A PNG is compressed
-#' with [compress_pub()]. For a chart saved as PNG, the drawn chart is also
-#' kept beside the file with [save_pub_grob()], so [deck_figure()] can
-#' place it as native PowerPoint shapes. A report that places pictures
-#' only turns that off with `grob` or the `save_grob` setting.
+#' the file that is checked is the file that ships. A PNG is drawn with
+#' `ragg::agg_png()`, so the picture does not depend on which devices the
+#' machine has, and is compressed with [compress_pub()]. For a chart saved
+#' as PNG, the drawn chart is also kept beside the file with
+#' [save_pub_grob()], so [deck_figure()] can place it as native PowerPoint
+#' shapes. A report that places pictures only turns that off with `grob`
+#' or the `save_grob` setting.
 #'
 #' @param plot A ggplot, patchwork or grob.
 #' @param path File path. The format comes from the extension.
@@ -44,10 +66,15 @@
 #'   for any other. Where `map_dpi` is `NULL`, a map takes `dpi` as well.
 #' @param bg Background colour. Default `"white"`.
 #' @param scale Passed to `ggplot2::ggsave()`. Default `1`.
-#' @param ... Further arguments passed to `ggplot2::ggsave()`.
+#' @param ... Further arguments passed to `ggplot2::ggsave()`. A `device`
+#'   named here is used as given.
 #' @param grob Logical. Keep the drawn chart beside a PNG. With `FALSE`
 #'   no grob file is written or removed. Default `NULL`, the `save_grob`
 #'   setting of `config`, which is `TRUE` unless set.
+#' @param png_device The device a PNG is drawn with. `"ragg"` names
+#'   `ragg::agg_png()`. `"default"` leaves the choice to 'ggplot2'.
+#'   Default `NULL`, the `png_device` setting of `config`, which is
+#'   `"ragg"` unless set.
 #' @param config A configuration built with [deck_config()]. Default is
 #'   the configuration in force.
 #'
@@ -64,7 +91,7 @@
 #' ggsave_pub(plot, path, width = 6, height = 3, grob = FALSE)
 #' @export
 ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
-                       scale = 1, ..., grob = NULL,
+                       scale = 1, ..., grob = NULL, png_device = NULL,
                        config = deck_config_get()) {
   if (missing(width) || missing(height)) {
     cli::cli_abort(c(
@@ -74,13 +101,18 @@ ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
     ))
   }
 
+  png_device <- rlang::arg_match0(
+    png_device %||% config$png_device, c("ragg", "default"),
+    arg_nm = "png_device"
+  )
+
   is_map <- .plot_has_sf(plot)
   map_dpi <- config$map_dpi %||% config$dpi
   dpi <- dpi %||% if (is_map) map_dpi else config$dpi
 
   fs::dir_create(fs::path_dir(path))
 
-  ggplot2::ggsave(
+  rlang::inject(ggplot2::ggsave(
     filename = path,
     plot = plot,
     width = width,
@@ -88,8 +120,8 @@ ggsave_pub <- function(plot, path, width, height, dpi = NULL, bg = "white",
     dpi = dpi,
     scale = scale,
     bg = bg,
-    ...
-  )
+    !!!.ggsave_extras(path, png_device, ...)
+  ))
 
   compress_pub(path)
 
@@ -217,7 +249,8 @@ trim_png <- function(path, border = 6, border_colour = "white") {
 #'
 #' Renders a gt table at a stated row padding and compresses the file. gt
 #' sizes a table to its content, so a short table stays short and a slide
-#' can place it at the top of its box.
+#' can place it at the top of its box. The picture is taken with the
+#' 'webshot2' package, which must be installed.
 #'
 #' @param build A function that takes the row padding in pixels and returns
 #'   a gt table.
@@ -245,6 +278,8 @@ trim_png <- function(path, border = 6, border_colour = "white") {
 gtsave_pub <- function(build, path, width, height, pad = NULL,
                        px_per_in = 132, zoom = 3,
                        config = deck_config_get()) {
+  rlang::check_installed("webshot2", reason = "to save a gt table as a PNG.")
+
   pad <- pad %||% config$table_row_padding
 
   fs::dir_create(fs::path_dir(path))

@@ -4,7 +4,15 @@
 \alias{deck_place_vector}
 \title{Place a Saved Chart as Native Shapes}
 \usage{
-deck_place_vector(deck, path, geom, label, ..., config = deck_config_get())
+deck_place_vector(
+  deck,
+  path,
+  geom,
+  label,
+  alt = NULL,
+  ...,
+  config = deck_config_get()
+)
 }
 \arguments{
 \item{deck}{An \code{rpptx} object, on the slide to change.}
@@ -18,6 +26,10 @@ used when the grob is too large.}
 \code{\link[=deck_below_subtitle]{deck_below_subtitle()}}.}
 
 \item{label}{Label given to the new shape.}
+
+\item{alt}{Alternative text for the PNG placed when the grob is too
+large, which a screen reader reads out. Default \code{NULL}, none. It does
+not apply to a chart placed as native shapes.}
 
 \item{...}{Settings of \code{\link[=deck_config]{deck_config()}} to change for this call, as
 \code{name = value}, such as \code{vector_max_bytes}.}

@@ -4,7 +4,7 @@
 \alias{deck_figure}
 \title{Place a Chart as Native Shapes Where Possible}
 \usage{
-deck_figure(path, width, height, config = deck_config_get())
+deck_figure(path, width, height, config = deck_config_get(), alt = NULL)
 }
 \arguments{
 \item{path}{Path to the PNG.}
@@ -14,6 +14,10 @@ deck_figure(path, width, height, config = deck_config_get())
 \item{config}{A configuration built with \code{\link[=deck_config]{deck_config()}}. Default is
 the configuration in force. Its \code{vector_max_bytes} and
 \code{vector_scale_tolerance} settings decide when shapes are used.}
+
+\item{alt}{Alternative text for the picture, which a screen reader
+reads out. Default \code{NULL}, none. It does not apply to a chart placed
+as native shapes.}
 }
 \value{
 An \code{rvg::dml()} object or an \code{officer::external_img()}.
@@ -28,5 +32,9 @@ returned as a picture.
 \examples{
 \dontrun{
 deck_figure("outputs/trend.png", width = 6, height = 3)
+deck_figure(
+  "outputs/trend.png", width = 6, height = 3,
+  alt = "Line chart of cases by week of onset"
+)
 }
 }

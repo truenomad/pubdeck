@@ -14,6 +14,7 @@ deck_figure_page(
   sources = NULL,
   as_of = NULL,
   framing = FALSE,
+  alt = NULL,
   ...,
   config = deck_config_get()
 )
@@ -41,6 +42,9 @@ mark are set in the weight of the title.}
 \item{framing}{Logical. The page carries no finding, so it may name no
 source. Default \code{FALSE}.}
 
+\item{alt}{Alternative text for the figure, which a screen reader reads
+out. Default \code{NULL}, none.}
+
 \item{...}{Settings of \code{\link[=deck_config]{deck_config()}} to change for this call, as
 \code{name = value}, such as \code{page_title_box} or \code{pending_page_pt}.}
 
@@ -64,7 +68,8 @@ deck <- deck_figure_page(
   title = "Cases by week of onset",
   subtitle = "Cases fell **after** the campaign",
   figure = "outputs/trend.png",
-  section = "epi", sources = "polis"
+  section = "epi", sources = "polis",
+  alt = "Line chart of cases by week of onset"
 )
 }
 }
