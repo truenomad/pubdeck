@@ -129,8 +129,14 @@ deck <- pubdeck::deck_contents_slide(
   deck, pubdeck::deck_contents_entries(deck)
 )
 
+deck <- pubdeck::deck_repair(deck)
+
 print(deck, target = "outputs/weekly_review.pptx")
 ```
+
+`deck_repair()` drops the shapes and corrects the paragraphs that
+PowerPoint would otherwise repair on opening, so call it just before the
+deck is written for the last time.
 
 A page that names no source stops the build, because a slide with no
 source line reads as though it needs none.

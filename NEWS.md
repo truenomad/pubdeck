@@ -1,3 +1,17 @@
+# pubdeck 0.3.3
+
+* New `deck_fix_shapes()` drops every shape, picture or connector whose
+  position or size is written at the limit of a 32-bit whole number.
+  A chart placed as native shapes writes such a shape for a rectangle
+  whose sides are both under 0.01 point, such as a tile or rectangle
+  of zero width and height. It shows nothing, but PowerPoint repairs a
+  deck that holds one. With `quiet = FALSE`, the default, it reports how
+  many shapes it dropped when there are any.
+* New `deck_repair()` runs `deck_fix_shapes()` and
+  `deck_fix_paragraphs()`. It is the one call to make before a deck is
+  written for the last time. No page builder or writer of this package
+  calls it.
+
 # pubdeck 0.3.2
 
 * The page builders no longer write a table cell with no text as a

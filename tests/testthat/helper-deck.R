@@ -236,3 +236,59 @@ line_width <- function(text, font, pt, res = 7200) {
 image_pixels <- function(path) {
   as.integer(magick::image_data(magick::image_read(path)))
 }
+
+# the shapes on the current slide written at the limit of a 32-bit whole
+# number, which PowerPoint repairs on opening
+unplaced_shapes <- function(deck) {
+  slide <- deck$slide$get_slide(deck$cursor)$get()
+
+  xml2::xml_find_all(slide, .unplaced_shapes, .slide_ns)
+}
+
+# the names of the shapes on the current slide
+shape_names <- function(deck) {
+  slide <- deck$slide$get_slide(deck$cursor)$get()
+
+  xml2::xml_attr(xml2::xml_find_all(slide, "//p:cNvPr", .slide_ns), "name")
+}
+
+# a page with two text boxes, one of them given a limit value in its
+# position or size, as rvg writes a chart mark with no outline
+unplaced_shape_page <- function(config = test_config(), attr = "x",
+                                value = "2147483647") {
+  deck <- blank_page(config) |>
+    officer::ph_with(
+      value = "Kept", location = .box_location(test_box(), "kept")
+    ) |>
+    officer::ph_with(
+      value = "Lost", location = .box_location(test_box(top = 4), "lost")
+    )
+
+  slide <- deck$slide$get_slide(deck$cursor)$get()
+  node <- if (attr %in% c("x", "y")) "a:off" else "a:ext"
+  xfrm <- xml2::xml_find_first(
+    slide,
+    sprintf("//p:sp[p:nvSpPr/p:cNvPr/@name='lost']/p:spPr/a:xfrm/%s", node),
+    .slide_ns
+  )
+  xml2::xml_set_attr(xfrm, attr, value)
+
+  deck
+}
+
+# a chart with one rectangle of no width or height, saved as a grob
+save_unplaced_chart <- function(dir) {
+  data <- tibble::tibble(
+    xmin = c(1, 2, 3), xmax = c(1.5, 2.5, 3),
+    ymin = c(0, 0, 1), ymax = c(1, 2, 1)
+  )
+  plot <- ggplot2::ggplot(data) +
+    ggplot2::geom_rect(ggplot2::aes(
+      xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax
+    ))
+
+  path <- file.path(dir, "chart.rds")
+  saveRDS(ggplot2::ggplotGrob(plot), path)
+
+  path
+}
